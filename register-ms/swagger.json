@@ -1,0 +1,111 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "User API",
+    "version": "1.0.0",
+    "description": "API para gestionar usuarios y sus imágenes de perfil"
+  },
+  "paths": {
+    "/api/users/{id}/profile-image": {
+      "post": {
+        "summary": "Sube una imagen de perfil",
+        "description": "Permite que un usuario suba su imagen de perfil.",
+        "tags": ["Users"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "El ID del usuario"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Imagen del usuario"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Imagen de perfil actualizada con éxito",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Imagen de perfil actualizada"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "example": "https://buket-avatars.s3.amazonaws.com/imagen.jpg"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "Crea un nuevo usuario",
+        "description": "Permite crear un nuevo usuario en el sistema.",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "Nombre de usuario"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Correo electrónico del usuario"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Contraseña del usuario"
+                  }
+                },
+                "example": {
+                  "username": "Johana Elizalde",
+                  "email": "njelizalde@uce.edu.ec",
+                  "password": "admin123"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario creado exitosamente"
+          },
+          "400": {
+            "description": "Error en la creación del usuario"
+          }
+        }
+      }
+    }
+  }
+}
