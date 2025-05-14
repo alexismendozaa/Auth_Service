@@ -26,8 +26,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./login-service
+          context: ./login-ms
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/login-service:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
