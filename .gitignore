@@ -1,7 +1,7 @@
 # Node modules
 node_modules/
 
-# Entornos
+# Environments
 .env
 .env.*
 
@@ -11,7 +11,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Dependencias lock (si no usas esa herramienta específica)
+# Dependences
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
@@ -20,7 +20,7 @@ pnpm-lock.yaml
 .vscode/
 .idea/
 
-# Sistema
+# Sistem
 .DS_Store
 Thumbs.db
 
