@@ -35,22 +35,30 @@ jobs:
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
-          chmod 600 ~/.ssh/ec2_key.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
           ssh-keyscan ${{ secrets.LOGIN_EC2_HOST }} >> ~/.ssh/known_hosts
+          
+          # Verificación de la clave (debug)
+          ls -la ~/.ssh
+          ssh-keygen -lf ~/.ssh/ec2_key
+
+      - name: Test SSH connection
+        run: |
+          ssh -v -i ~/.ssh/ec2_key ubuntu@${{ secrets.LOGIN_EC2_HOST }} echo "Conexión SSH exitosa!"
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/ec2_key.pem ec2-user@${{ secrets.LOGIN_EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.LOGIN_EC2_HOST }} << 'EOF'
           # Detener y eliminar contenedor anterior si existe
-          docker stop login-ms || true
-          docker rm login-ms || true
+          sudo docker stop login-ms || true
+          sudo docker rm login-ms || true
           
-          # Descargar la imagen que acabamos de subir a Docker Hub
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
+          # Descargar la imagen
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
           
           # Ejecutar la nueva imagen
-          docker run -d \
+          sudo docker run -d \
             --name login-ms \
             -p 8081:8081 \
             --restart unless-stopped \
