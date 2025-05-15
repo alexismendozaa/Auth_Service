@@ -11,8 +11,11 @@ const path = require('path');
 dotenv.config();
 const app = express();
 
-// Configuración crucial para el Load Balancer (NUEVA LÍNEA)
+// Configuración crucial para el Load Balancer
 app.set('trust proxy', true);
+
+// Middleware para servir archivos estáticos (NUEVA LÍNEA)
+app.use(express.static('public'));
 
 // Middleware to parse JSON in the request body
 app.use(express.json()); 
@@ -20,35 +23,31 @@ app.use(express.json());
 // CORS configuration
 app.use(cors());
 
-// Rutas de autenticación (SIN CAMBIOS)
+// Rutas de autenticación
 const authRoutes = require('./routes/authRoutes');  
 app.use('/api/auth', authRoutes);
 
-// Multer configuration for file handling (SIN CAMBIOS)
+// Multer configuration for file handling
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Swagger configuration (MODIFICACIÓN SEGURA)
+// Swagger configuration (MODIFICACIÓN MÍNIMA)
 const swaggerOptions = {
   definition: {
-    openapi: '3.0.0', // Especificamos versión OpenAPI (IMPORTANTE)
+    openapi: '3.0.0',
     info: {
       title: 'User API',
       version: '1.0.0',
       description: 'API para el manejo de usuarios',
     },
-    servers: [ // NUEVO: Define servidores base
-      {
-        url: process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`,
-        description: 'Servidor principal'
-      }
-    ],
-    tags: [
-      {
-        name: 'Users',
-        description: 'Operaciones relacionadas con los usuarios',
-      },
-    ],
+    servers: [{
+      url: process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`,
+      description: 'Servidor principal'
+    }],
+    tags: [{
+      name: 'Users',
+      description: 'Operaciones relacionadas con los usuarios',
+    }],
     produces: ['application/json'],
   },
   apis: ['./routes/*.js'],
@@ -56,28 +55,35 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
-// Configuración Swagger UI mejorada (MODIFICACIÓN SEGURA)
+// Configuración Swagger UI (MODIFICACIÓN MÍNIMA)
 const swaggerUiOptions = {
-  customSiteTitle: "User API Documentation",
+  customCssUrl: '/swagger-ui/swagger-ui.css',
+  customJs: [
+    '/swagger-ui/swagger-ui-bundle.js',
+    '/swagger-ui/swagger-ui-standalone-preset.js'
+  ],
   swaggerOptions: {
-    persistAuthorization: true, // Mantiene la autorización
-    tryItOutEnabled: true,     // Habilita el botón "Try it out"
-    validatorUrl: null         // Desactiva el validador externo
+    persistAuthorization: true
   }
 };
 
-app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOptions));
+app.use('/api-docs-register', 
+  swaggerUi.serveFiles(swaggerDocs, swaggerUiOptions),
+  (req, res) => {
+    res.send(swaggerUi.generateHTML(swaggerDocs, swaggerUiOptions));
+  }
+);
 
-// Routes (SIN CAMBIOS)
+// Routes
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
-// S3 Client Configuration (AWS SDK v3) (SIN CAMBIOS)
+// S3 Client Configuration (AWS SDK v3)
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
 });
 
-// Function to upload the image to S3 (SIN CAMBIOS)
+// Function to upload the image to S3
 async function uploadToS3(fileBuffer, filename) {
   const params = {
     Bucket: process.env.S3_BUCKET_NAME,
@@ -97,7 +103,7 @@ async function uploadToS3(fileBuffer, filename) {
   }
 }
 
-// Path to update the profile picture (SIN CAMBIOS)
+// Path to update the profile picture
 app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req, res) => {
   const { userId } = req.params;
   const { file } = req;
@@ -120,7 +126,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   }
 });
 
-// Start the server (SIN CAMBIOS)
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);

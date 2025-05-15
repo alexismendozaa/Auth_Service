@@ -1,17 +1,16 @@
 FROM node:16
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copiar solo los archivos necesarios para instalar dependencias primero
 COPY package*.json ./
 
 RUN npm install
 
-# Copiar el resto de los archivos
-COPY . .
+# Copia explícita de archivos de Swagger UI
+RUN mkdir -p public/swagger-ui && \
+    cp -r node_modules/swagger-ui-dist/* public/swagger-ui/
 
-# Asegurar que los archivos estáticos de Swagger UI estén disponibles
-RUN cp -r node_modules/swagger-ui-dist public/ || echo "Swagger UI files not found, continuing..."
+COPY . .
 
 EXPOSE 3000
 

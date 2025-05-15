@@ -4,8 +4,11 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Primero intenta npm ci, si falla usa npm install
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN npm install
+
+# Copia explícita de los archivos de Swagger UI
+RUN mkdir -p public/swagger-ui && \
+    cp -r node_modules/swagger-ui-dist/* public/swagger-ui/
 
 COPY . .
 
