@@ -3,8 +3,6 @@ name: Login Service CI/CD
 on:
   push:
     branches: [test]
-  pull_request:
-    branches: [test]
 
 jobs:
   build-and-push:
@@ -29,41 +27,32 @@ jobs:
           context: ./login-ms
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy-to-ec2:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          ssh-keyscan ${{ secrets.LOGIN_EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
-        env:
-          EC2_HOST: ${{ secrets.LOGIN_EC2_HOST }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
         run: |
-          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          echo "$EC2_SSH_KEY" > /tmp/ssh_key.pem
-          chmod 600 /tmp/ssh_key.pem
-          
-          ssh $SSH_OPTS -i /tmp/ssh_key.pem ec2-user@$EC2_HOST << 'EOF'
-          # Stop and remove existing container
+          ssh -i ~/.ssh/ec2_key.pem ec2-user@${{ secrets.LOGIN_EC2_HOST }} << 'EOF'
+          # Detener y eliminar contenedor anterior si existe
           docker stop login-ms || true
           docker rm login-ms || true
           
-          # Pull the latest image
-          docker pull $DOCKER_IMAGE
+          # Descargar la imagen que acabamos de subir a Docker Hub
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
           
-          # Run new container
-          docker run -d --name login-ms -p 8081:8081 $DOCKER_IMAGE
+          # Ejecutar la nueva imagen
+          docker run -d \
+            --name login-ms \
+            -p 8081:8081 \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
           EOF
