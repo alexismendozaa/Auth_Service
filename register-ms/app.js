@@ -44,6 +44,7 @@ const swaggerOptions = {
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs-register', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
 
 app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
