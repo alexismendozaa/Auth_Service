@@ -10,44 +10,34 @@ const path = require('path');
 
 dotenv.config();
 const app = express();
-
-// Configuración crucial para el Load Balancer
-app.set('trust proxy', true);
-
-// Middleware para servir archivos estáticos (NUEVA LÍNEA)
-app.use(express.static('public'));
-
 // Middleware to parse JSON in the request body
 app.use(express.json()); 
 
+const authRoutes = require('./routes/authRoutes');  
+app.use('/api/auth', authRoutes);  
+
+
 // CORS configuration
 app.use(cors());
-
-// Rutas de autenticación
-const authRoutes = require('./routes/authRoutes');  
-app.use('/api/auth', authRoutes);
 
 // Multer configuration for file handling
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Swagger configuration (MODIFICACIÓN MÍNIMA)
+// Swagger configuration
 const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
+  swaggerDefinition: {
     info: {
       title: 'User API',
       version: '1.0.0',
       description: 'API para el manejo de usuarios',
     },
-    servers: [{
-      url: process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`,
-      description: 'Servidor principal'
-    }],
-    tags: [{
-      name: 'Users',
-      description: 'Operaciones relacionadas con los usuarios',
-    }],
+    tags: [
+      {
+        name: 'Users',
+        description: 'Operaciones relacionadas con los usuarios',
+      },
+    ],
     produces: ['application/json'],
   },
   apis: ['./routes/*.js'],
@@ -55,24 +45,7 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
-// Configuración Swagger UI (MODIFICACIÓN MÍNIMA)
-const swaggerUiOptions = {
-  customCssUrl: '/swagger-ui/swagger-ui.css',
-  customJs: [
-    '/swagger-ui/swagger-ui-bundle.js',
-    '/swagger-ui/swagger-ui-standalone-preset.js'
-  ],
-  swaggerOptions: {
-    persistAuthorization: true
-  }
-};
-
-app.use('/api-docs-register', 
-  swaggerUi.serveFiles(swaggerDocs, swaggerUiOptions),
-  (req, res) => {
-    res.send(swaggerUi.generateHTML(swaggerDocs, swaggerUiOptions));
-  }
-);
+app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 const userRoutes = require('./routes/userRoutes');
@@ -86,15 +59,15 @@ const s3Client = new S3Client({
 // Function to upload the image to S3
 async function uploadToS3(fileBuffer, filename) {
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: `profiles/${filename}`,
-    Body: fileBuffer,
+    Bucket: process.env.S3_BUCKET_NAME, // Bucket name
+    Key: `profiles/${filename}`, // Path of the file within the bucket
+    Body: fileBuffer, // The contents of the file
     ACL: 'public-read', 
   };
 
   try {
     const command = new PutObjectCommand(params);
-    const data = await s3Client.send(command);
+    const data = await s3Client.send(command); // Upload the image to S3
     console.log('Imagen subida a S3:', data);
     return `${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${filename}`;
   } catch (err) {
@@ -115,6 +88,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   try {
     const imageUrl = await uploadToS3(file.buffer, file.originalname);
 
+    // Update the image URL in the database (updates the User model)
     await sequelize.models.User.update(
       { profileImage: imageUrl },
       { where: { id: userId } }

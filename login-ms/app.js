@@ -4,18 +4,14 @@ const bodyParser = require('body-parser');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const authRoutes = require('./routes/authRoutes');
-const { sequelize } = require('./config/db');
+const { sequelize } = require('./config/db');  // Importamos la conexión desde db.js
 const path = require('path');
 dotenv.config();
 
 const app = express();
+app.use(bodyParser.json()); // Para procesar JSON en el cuerpo de las solicitudes
 
-// Configuración para trabajar detrás de proxy (NUEVA LÍNEA)
-app.set('trust proxy', true);  // Esto es crucial para el Load Balancer
-
-app.use(bodyParser.json());
-
-// Configuración de Swagger (MODIFICACIÓN SEGURA)
+// Configuración de Swagger
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -24,42 +20,28 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'API para la autenticación de usuarios',
     },
-    servers: [  // NUEVO: Ayuda con las URLs absolutas
-      {
-        url: process.env.APP_URL || 'http://localhost:3001',
-        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Local server'
-      }
-    ]
   },
-  apis: ['./routes/authRoutes.js'],
+  apis: ['./routes/authRoutes.js'], // Aquí se encuentra la definición de las rutas
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs-login', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Configuración Swagger UI (MODIFICACIÓN SEGURA)
-const swaggerUiOptions = {
-  customSiteTitle: "Login Microservice API",
-  swaggerOptions: {
-    persistAuthorization: true,
-    validatorUrl: null  // Desactiva el validador para evitar problemas
-  }
-};
-
-app.use('/api-docs-login', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
-
-// Rutas existentes (SIN MODIFICACIONES)
+// Rutas de autenticación
 app.use('/api', authRoutes);
 
-// Conexión a la base de datos (SIN MODIFICACIONES)
+// Verificar la conexión a la base de datos
 sequelize.authenticate()
   .then(() => {
     console.log('¡Conexión exitosa a la base de datos!');
     
-    sequelize.sync({ force: false })
+    // Sincronizar los modelos después de verificar la conexión
+    sequelize.sync({ force: false })  // Usa { force: false } para evitar eliminar datos existentes
       .then(() => {
         console.log('Modelos sincronizados correctamente con la base de datos.');
 
-        const PORT = process.env.PORT || 3001;
+        // Iniciar el servidor solo después de que la conexión y sincronización sean exitosas
+        const PORT = process.env.PORT || 3001;  // Cambiado el puerto a 3001
         app.listen(PORT, () => {
           console.log(`Servidor corriendo en puerto ${PORT}`);
         });
