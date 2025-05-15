@@ -60,7 +60,7 @@ jobs:
           # Run new container with environment variables
           sudo docker run -d \
             --name register-ms \
-            -p 8000:8000 \
+            -p 8000:3000 \
             --restart unless-stopped \
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e DB_USER=${{ secrets.DB_USER }} \
