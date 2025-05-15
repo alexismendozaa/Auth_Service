@@ -45,7 +45,7 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 const userRoutes = require('./routes/userRoutes');
