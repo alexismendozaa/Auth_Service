@@ -69,7 +69,7 @@ jobs:
             -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e JWT_EXPIRATION=${{ secrets.AWS_REGION }} \
+            -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
 
 
