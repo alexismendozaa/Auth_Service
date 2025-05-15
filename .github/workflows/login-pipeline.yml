@@ -70,6 +70,7 @@ jobs:
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+            -e APP_URL=http://lumisnap.sytes.net \
             ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
 
 
