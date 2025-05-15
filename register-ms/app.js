@@ -9,26 +9,22 @@ const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const path = require('path');
 
 dotenv.config();
-
-const app = express(); // Inicialización de app antes de usarla
-
-// Servir archivos estáticos de Swagger UI
-app.use('/api-docs-register', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
-
-// Middleware para parsear JSON en el cuerpo de las solicitudes
+const app = express();
+// Middleware to parse JSON in the request body
 app.use(express.json()); 
 
 const authRoutes = require('./routes/authRoutes');  
 app.use('/api/auth', authRoutes);  
 
-// Configuración de CORS
+
+// CORS configuration
 app.use(cors());
 
-// Configuración de Multer para el manejo de archivos
+// Multer configuration for file handling
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Configuración de Swagger
+// Swagger configuration
 const swaggerOptions = {
   swaggerDefinition: {
     info: {
@@ -49,30 +45,29 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
-// Ruta para Swagger UI
 app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Rutas
+// Routes
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
-// Configuración del cliente de S3 (AWS SDK v3)
+// S3 Client Configuration (AWS SDK v3)
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
 });
 
-// Función para subir la imagen a S3
+// Function to upload the image to S3
 async function uploadToS3(fileBuffer, filename) {
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME, // Nombre del bucket
-    Key: `profiles/${filename}`, // Ruta del archivo dentro del bucket
-    Body: fileBuffer, // Contenido del archivo
+    Bucket: process.env.S3_BUCKET_NAME, // Bucket name
+    Key: `profiles/${filename}`, // Path of the file within the bucket
+    Body: fileBuffer, // The contents of the file
     ACL: 'public-read', 
   };
 
   try {
     const command = new PutObjectCommand(params);
-    const data = await s3Client.send(command); // Subir la imagen a S3
+    const data = await s3Client.send(command); // Upload the image to S3
     console.log('Imagen subida a S3:', data);
     return `${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${filename}`;
   } catch (err) {
@@ -81,7 +76,7 @@ async function uploadToS3(fileBuffer, filename) {
   }
 }
 
-// Ruta para actualizar la imagen de perfil
+// Path to update the profile picture
 app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req, res) => {
   const { userId } = req.params;
   const { file } = req;
@@ -93,7 +88,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   try {
     const imageUrl = await uploadToS3(file.buffer, file.originalname);
 
-    // Actualizar la URL de la imagen en la base de datos (actualiza el modelo de Usuario)
+    // Update the image URL in the database (updates the User model)
     await sequelize.models.User.update(
       { profileImage: imageUrl },
       { where: { id: userId } }
@@ -105,7 +100,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   }
 });
 
-// Iniciar el servidor
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
