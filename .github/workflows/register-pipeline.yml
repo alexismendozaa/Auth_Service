@@ -27,6 +27,11 @@ jobs:
           context: ./register-ms
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
+          build-args: |
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_HOST=${{ secrets.DB_HOST }}
 
   deploy-to-ec2:
     needs: build-and-push
@@ -38,29 +43,31 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
           ssh-keyscan ${{ secrets.REGISTER_EC2_HOST }} >> ~/.ssh/known_hosts
-          
-          # Verificación de la clave (para debug)
-          ls -la ~/.ssh
-          ssh-keygen -lf ~/.ssh/ec2_key
 
-      - name: Test SSH connection
-        run: |
-          ssh -v -i ~/.ssh/ec2_key ubuntu@${{ secrets.REGISTER_EC2_HOST }} echo "Conexión SSH exitosa!"
+      - name: Verify SSH connection
+        run: ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.REGISTER_EC2_HOST }} "echo 'SSH connection successful!'"
 
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.REGISTER_EC2_HOST }} << 'EOF'
-          # Detener y eliminar contenedor anterior si existe
+          # Stop and remove existing container
           sudo docker stop register-ms || true
           sudo docker rm register-ms || true
           
-          # Descargar la imagen
+          # Pull the latest image from Docker Hub
           sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
           
-          # Ejecutar la nueva imagen
+          # Run new container with environment variables
           sudo docker run -d \
             --name register-ms \
             -p 8000:8000 \
             --restart unless-stopped \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
+          
+          # Verify container is running
+          sudo docker ps | grep register-ms
           EOF
