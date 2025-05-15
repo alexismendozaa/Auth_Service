@@ -24,14 +24,25 @@ app.use(cors());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Swagger configuration
+// Configuración mejorada de Swagger
 const swaggerOptions = {
   swaggerDefinition: {
+    openapi: '3.0.0', // Especificar versión OpenAPI
     info: {
       title: 'User API',
       version: '1.0.0',
       description: 'API para el manejo de usuarios',
     },
+    servers: [ // Agregar servidores/base URLs
+      {
+        url: 'https://lumisnap.sytes.net', // URL pública con LB
+        description: 'Production server'
+      },
+      {
+        url: 'http://localhost:3000', // URL local para desarrollo
+        description: 'Local development server'
+      }
+    ],
     tags: [
       {
         name: 'Users',
@@ -39,9 +50,40 @@ const swaggerOptions = {
       },
     ],
     produces: ['application/json'],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [{
+      bearerAuth: []
+    }]
   },
   apis: ['./routes/*.js'],
 };
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Configuración especial para la UI de Swagger
+const swaggerUiOptions = {
+  customSiteTitle: "User API Documentation",
+  customCss: '.swagger-ui .topbar { display: none }',
+  customfavIcon: '/public/favicon.ico',
+  explorer: true
+};
+
+// Ruta para servir Swagger UI
+router.use('/api-docs-register', swaggerUi.serve, (req, res, next) => {
+  // Configuración dinámica según el entorno
+  swaggerSpec.host = req.get('host'); // Usar el host del request
+  swaggerSpec.schemes = [req.protocol]; // Usar el protocolo (http/https)
+  
+  return swaggerUi.setup(swaggerSpec, swaggerUiOptions)(req, res, next);
+});
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
