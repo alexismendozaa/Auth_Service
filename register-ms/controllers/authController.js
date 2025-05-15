@@ -9,30 +9,30 @@ const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Check if the user already exists
+    // Verificar si el usuario ya existe
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
-    // Encrypt the password
+    // Cifrar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create new user
-    const user = await User.create({
+    // Crear el nuevo usuario
+    const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
     });
 
-    // Generate the JWT
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRATION });
-
-    res.status(201).json({ token });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error al registrar usuario' });
+    // Responder con el código 201 si todo es exitoso
+    return res.status(201).json({ message: 'Usuario registrado correctamente', user: newUser });
+  } catch (error) {
+    // Agregar un log más detallado para capturar el error en producción
+    console.error("Error en el registro de usuario:", error);
+    return res.status(500).json({ message: 'Error al registrar usuario', error: error.message });
   }
 };
+
 
 module.exports = { register };

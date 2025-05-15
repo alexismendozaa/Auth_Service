@@ -66,7 +66,13 @@ jobs:
             -e DB_USER=${{ secrets.DB_USER }} \
             -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
             -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            -e AWS_REGION=${{ secrets.AWS_REGION }} \
+            -e JWT_EXPIRATION=${{ secrets.AWS_REGION }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
+
+
           
           # Verify container is running
           sudo docker ps | grep login-ms
