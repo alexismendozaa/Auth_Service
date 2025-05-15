@@ -60,7 +60,7 @@ jobs:
           # Run new container with environment variables
           sudo docker run -d \
             --name login-ms \
-            -p 8081:3081 \
+            -p 8001:3001 \
             --restart unless-stopped \
             -e DB_NAME=${{ secrets.DB_NAME }} \
             -e DB_USER=${{ secrets.DB_USER }} \
