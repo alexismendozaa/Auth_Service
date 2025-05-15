@@ -70,6 +70,7 @@ jobs:
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             -e JWT_EXPIRATION=${{ secrets.AWS_REGION }} \
+            -e APP_URL=http://lumisnap.sytes.net \
             ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
           
           # Verify container is running

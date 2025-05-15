@@ -10,28 +10,39 @@ const path = require('path');
 
 dotenv.config();
 const app = express();
+
+// Configuración crucial para el Load Balancer (NUEVA LÍNEA)
+app.set('trust proxy', true);
+
 // Middleware to parse JSON in the request body
 app.use(express.json()); 
-
-const authRoutes = require('./routes/authRoutes');  
-app.use('/api/auth', authRoutes);  
-
 
 // CORS configuration
 app.use(cors());
 
-// Multer configuration for file handling
+// Rutas de autenticación (SIN CAMBIOS)
+const authRoutes = require('./routes/authRoutes');  
+app.use('/api/auth', authRoutes);
+
+// Multer configuration for file handling (SIN CAMBIOS)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Swagger configuration
+// Swagger configuration (MODIFICACIÓN SEGURA)
 const swaggerOptions = {
-  swaggerDefinition: {
+  definition: {
+    openapi: '3.0.0', // Especificamos versión OpenAPI (IMPORTANTE)
     info: {
       title: 'User API',
       version: '1.0.0',
       description: 'API para el manejo de usuarios',
     },
+    servers: [ // NUEVO: Define servidores base
+      {
+        url: process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`,
+        description: 'Servidor principal'
+      }
+    ],
     tags: [
       {
         name: 'Users',
@@ -45,29 +56,39 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+// Configuración Swagger UI mejorada (MODIFICACIÓN SEGURA)
+const swaggerUiOptions = {
+  customSiteTitle: "User API Documentation",
+  swaggerOptions: {
+    persistAuthorization: true, // Mantiene la autorización
+    tryItOutEnabled: true,     // Habilita el botón "Try it out"
+    validatorUrl: null         // Desactiva el validador externo
+  }
+};
 
-// Routes
+app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOptions));
+
+// Routes (SIN CAMBIOS)
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
-// S3 Client Configuration (AWS SDK v3)
+// S3 Client Configuration (AWS SDK v3) (SIN CAMBIOS)
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
 });
 
-// Function to upload the image to S3
+// Function to upload the image to S3 (SIN CAMBIOS)
 async function uploadToS3(fileBuffer, filename) {
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME, // Bucket name
-    Key: `profiles/${filename}`, // Path of the file within the bucket
-    Body: fileBuffer, // The contents of the file
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: `profiles/${filename}`,
+    Body: fileBuffer,
     ACL: 'public-read', 
   };
 
   try {
     const command = new PutObjectCommand(params);
-    const data = await s3Client.send(command); // Upload the image to S3
+    const data = await s3Client.send(command);
     console.log('Imagen subida a S3:', data);
     return `${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${filename}`;
   } catch (err) {
@@ -76,7 +97,7 @@ async function uploadToS3(fileBuffer, filename) {
   }
 }
 
-// Path to update the profile picture
+// Path to update the profile picture (SIN CAMBIOS)
 app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req, res) => {
   const { userId } = req.params;
   const { file } = req;
@@ -88,7 +109,6 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   try {
     const imageUrl = await uploadToS3(file.buffer, file.originalname);
 
-    // Update the image URL in the database (updates the User model)
     await sequelize.models.User.update(
       { profileImage: imageUrl },
       { where: { id: userId } }
@@ -100,7 +120,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   }
 });
 
-// Start the server
+// Start the server (SIN CAMBIOS)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
