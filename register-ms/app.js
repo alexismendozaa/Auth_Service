@@ -10,12 +10,9 @@ const path = require('path');
 
 dotenv.config();
 const app = express();
+
 // Middleware to parse JSON in the request body
 app.use(express.json()); 
-
-const authRoutes = require('./routes/authRoutes');  
-app.use('/api/auth', authRoutes);  
-
 
 // CORS configuration
 app.use(cors());
@@ -76,8 +73,8 @@ const swaggerUiOptions = {
   explorer: true
 };
 
-// Ruta para servir Swagger UI
-router.use('/api-docs-register', swaggerUi.serve, (req, res, next) => {
+// Ruta corregida para servir Swagger UI (usando app en lugar de router)
+app.use('/api-docs-register', swaggerUi.serve, (req, res, next) => {
   // Configuración dinámica según el entorno
   swaggerSpec.host = req.get('host'); // Usar el host del request
   swaggerSpec.schemes = [req.protocol]; // Usar el protocolo (http/https)
@@ -85,11 +82,10 @@ router.use('/api-docs-register', swaggerUi.serve, (req, res, next) => {
   return swaggerUi.setup(swaggerSpec, swaggerUiOptions)(req, res, next);
 });
 
-const swaggerDocs = swaggerJsdoc(swaggerOptions);
-
-app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
 // Routes
+const authRoutes = require('./routes/authRoutes');  
+app.use('/api/auth', authRoutes);
+
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
