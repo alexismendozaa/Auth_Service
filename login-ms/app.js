@@ -6,7 +6,6 @@ const swaggerUi = require('swagger-ui-express');
 const authRoutes = require('./routes/authRoutes');
 const { sequelize } = require('./config/db');  // Importamos la conexión desde db.js
 const path = require('path');
-
 dotenv.config();
 
 const app = express();
@@ -26,8 +25,6 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs-login', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
-
 app.use('/api-docs-login', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rutas de autenticación
