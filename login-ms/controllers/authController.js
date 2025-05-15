@@ -29,7 +29,7 @@ const login = async (req, res) => {
     });
 
     // Responder con el token
-    res.status(200).json({ token });
+    res.status(201).json({ token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error al autenticar el usuario' });

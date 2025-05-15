@@ -46,7 +46,7 @@ async function updateProfilePicture(req, res) {
     // Update the image URL in the database
     await User.update({ profileImage: imageUrl }, { where: { id: userId } });
 
-    return res.status(200).json({ message: 'Imagen de perfil actualizada', imageUrl });
+    return res.status(201).json({ message: 'Imagen de perfil actualizada', imageUrl });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

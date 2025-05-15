@@ -21,7 +21,7 @@ const router = express.Router();
  *               password:
  *                 type: string
  *     responses:
- *       200:
+ *       201:
  *         description: Token de autenticación generado
  *         content:
  *           application/json:

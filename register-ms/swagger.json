@@ -40,7 +40,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Imagen de perfil actualizada con éxito",
             "content": {
               "application/json": {
@@ -98,7 +98,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Usuario creado exitosamente"
           },
           "400": {

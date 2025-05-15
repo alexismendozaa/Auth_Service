@@ -27,7 +27,7 @@ const upload = multer({ storage: storage }).single('file');
  *         type: file
  *         description: La imagen de perfil del usuario
  *     responses:
- *       200:
+ *       201:
  *         description: Imagen de perfil subida exitosamente
  *         content:
  *           application/json:

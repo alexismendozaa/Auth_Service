@@ -94,7 +94,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
       { where: { id: userId } }
     );
 
-    return res.status(200).send({ message: 'Imagen actualizada correctamente', imageUrl });
+    return res.status(201).send({ message: 'Imagen actualizada correctamente', imageUrl });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
