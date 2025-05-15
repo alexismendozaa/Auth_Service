@@ -10,6 +10,7 @@ const path = require('path');
 
 dotenv.config();
 const app = express();
+app.use('/api-docs-register', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
 // Middleware to parse JSON in the request body
 app.use(express.json()); 
 
