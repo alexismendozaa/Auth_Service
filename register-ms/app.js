@@ -16,6 +16,7 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');  
 app.use('/api/auth', authRoutes);  
 
+
 // CORS configuration
 app.use(cors());
 
@@ -44,12 +45,7 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
-// **Nueva línea añadida**: Servir Swagger UI de forma correcta
-// Sirve los archivos estáticos de Swagger UI en la ruta '/api-docs-register'
-app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
-  // Opcional: Si necesitas usar una ruta específica para los archivos estáticos de Swagger UI
-  swaggerUrl: '/swagger-ui',  // Esto puede ser opcional dependiendo de tu configuración
-}));
+app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 const userRoutes = require('./routes/userRoutes');
