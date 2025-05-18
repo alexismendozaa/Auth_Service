@@ -1,61 +1,75 @@
-name: Docker Image Build and Deploy
+name: Recovery Service CI/CD
 
 on:
   push:
-    branches:
-      - test
+    branches: [test]
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Show current directory and list files (diagnostic)
-        run: |
-          pwd
-          ls -la
-          ls -la ./  # List root files to confirm Dockerfile exists
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest .
-
-      - name: Push Docker image to DockerHub
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
-
-      - name: SSH to EC2 and deploy Docker container
-        uses: appleboy/ssh-action@v0.1.0
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
-          host: ${{ secrets.RECOVERY_EC2_HOST }}
-          username: ${{ secrets.EC2_SSH_KEY }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            docker stop recovery-ms || true
-            docker rm recovery-ms || true
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
-            docker run -d --name recovery-ms -p 8002:3002 \
-              -e APP_URL=${{ secrets.APP_URL }} \
-              -e DB_HOST=${{ secrets.DB_HOST }} \
-              -e DB_NAME=${{ secrets.DB_NAME }} \
-              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-              -e DB_USER=${{ secrets.DB_USER }} \
-              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-              -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
-              -e EMAIL_USER=${{ secrets.EMAIL_USER }} \
-              -e EMAIL_PASS=${{ secrets.EMAIL_PASS }} \
-              -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
-              ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
-            docker ps -q --filter "name=recovery-ms" || exit 1
+          context: .     # Aquí pones la ruta donde está el Dockerfile, "." si está en raíz
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+          build-args: |   # Si necesitas pasar argumentos de build (opcional)
+            # Puedes poner aquí si los usas
+            # DB_NAME=${{ secrets.DB_NAME }}
+            # etc.
+
+  deploy-to-ec2:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan ${{ secrets.RECOVERY_EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Verify SSH connection
+        run: ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.RECOVERY_EC2_HOST }} "echo 'SSH connection successful!'"
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.RECOVERY_EC2_HOST }} << 'EOF'
+          sudo docker stop recovery-ms || true
+          sudo docker rm recovery-ms || true
+
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+
+          sudo docker run -d \
+            --name recovery-ms \
+            -p 8002:3002 \
+            --restart unless-stopped \
+            -e APP_URL=${{ secrets.APP_URL }} \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+            -e EMAIL_USER=${{ secrets.EMAIL_USER }} \
+            -e EMAIL_PASS=${{ secrets.EMAIL_PASS }} \
+            -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+
+          sudo docker ps | grep recovery-ms
+          EOF
