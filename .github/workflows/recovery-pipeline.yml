@@ -24,13 +24,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./recovery-ms   # Aquí pones la ruta donde está el Dockerfile, "." si está en raíz
+          context: ./recovery-ms        # Aquí está la carpeta con el Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
-          build-args: |   # Si necesitas pasar argumentos de build (opcional)
-            # Puedes poner aquí si los usas
-            # DB_NAME=${{ secrets.DB_NAME }}
-            # etc.
 
   deploy-to-ec2:
     needs: build-and-push
