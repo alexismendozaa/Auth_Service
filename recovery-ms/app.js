@@ -15,7 +15,7 @@ app.use(express.json());
 
 // Habilitar CORS para Swagger UI (o cualquier cliente externo)
 app.use(cors({
-  origin: 'http://localhost:3002',  // Reemplaza con la URL de tu Swagger UI
+  origin:[ 'http://localhost:3002', 'http://lumisnap.sytes.net'],  // Reemplaza con la URL de tu Swagger UI
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
