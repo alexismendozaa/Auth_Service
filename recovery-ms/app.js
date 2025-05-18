@@ -59,7 +59,7 @@ sequelize.authenticate()
   });
 
 // Configuración del servidor
-const host = process.env.HOST || 'localhost';
+const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || 3002;
 
 app.listen(port, host, () => {
