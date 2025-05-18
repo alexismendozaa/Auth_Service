@@ -60,6 +60,6 @@ sequelize.authenticate()
 
 // Configuración del servidor
 const port = process.env.PORT || 3002;
-app.listen(PORT, () => {
+app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });
