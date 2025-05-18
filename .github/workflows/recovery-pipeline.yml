@@ -69,13 +69,11 @@ jobs:
             -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
-            -e HOST=${{ secrets.HOST }}\
+            -e HOST=${{ secrets.HOST }} \
             -e EMAIL_USER=${{ secrets.EMAIL_USER }} \
             -e APP_URL=${{ secrets.APP_URL }} \
             -e EMAIL_PASS=${{ secrets.EMAIL_PASS }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
-
-
           
           # Verify container is running
           sudo docker ps | grep recovery-ms
