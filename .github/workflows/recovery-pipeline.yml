@@ -24,7 +24,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .     # Aquí pones la ruta donde está el Dockerfile, "." si está en raíz
+          context: ./recovery-ms   # Aquí pones la ruta donde está el Dockerfile, "." si está en raíz
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
           build-args: |   # Si necesitas pasar argumentos de build (opcional)
