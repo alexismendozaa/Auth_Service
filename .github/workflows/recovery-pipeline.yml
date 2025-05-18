@@ -73,8 +73,6 @@ jobs:
             -e EMAIL_USER=${{ secrets.EMAIL_USER }} \
             -e APP_URL=${{ secrets.APP_URL }} \
             -e EMAIL_PASS=${{ secrets.EMAIL_PASS }} \
-          
-
             ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
 
 
