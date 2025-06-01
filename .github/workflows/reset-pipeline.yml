@@ -65,7 +65,7 @@ jobs:
             -e EMAIL_USER=${{ secrets.EMAIL_USER }} \
             -e EMAIL_PASS=${{ secrets.EMAIL_PASS }} \
             -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
-            ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/reset-ms:latest
 
-          sudo docker ps | grep recovery-ms
+          sudo docker ps | grep reset-ms
           EOF
