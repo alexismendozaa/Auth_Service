@@ -1,4 +1,4 @@
-name: Recovery Service CI/CD
+name: Reset Service CI/CD
 
 on:
   push:
@@ -24,9 +24,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./recovery-ms       
+          context: ./reset-ms      
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/reset-ms:latest
 
   deploy-to-ec2:
     needs: build-and-push
@@ -38,22 +38,22 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
-          ssh-keyscan ${{ secrets.RECOVERY_EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan ${{ secrets.RESET_EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Verify SSH connection
-        run: ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.RECOVERY_EC2_HOST }} "echo 'SSH connection successful!'"
+        run: ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.RESET_EC2_HOST }} "echo 'SSH connection successful!'"
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.RECOVERY_EC2_HOST }} << 'EOF'
-          sudo docker stop recovery-ms || true
-          sudo docker rm recovery-ms || true
+          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.RESET_EC2_HOST }} << 'EOF'
+          sudo docker stop reset-ms || true
+          sudo docker rm reset-ms || true
 
-          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/reset-ms:latest
 
           sudo docker run -d \
-            --name recovery-ms \
-            -p 8002:3002 \
+            --name reset-ms \
+            -p 8003:3003 \
             --restart unless-stopped \
             -e APP_URL=${{ secrets.APP_URL }} \
             -e DB_HOST=${{ secrets.DB_HOST }} \

@@ -9,26 +9,26 @@ const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Verificar si el usuario ya existe
+    // Check if the user already exists
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
-    // Cifrar la contraseña
+    // Encrypt the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear el nuevo usuario
+    // Create the new user
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
     });
 
-    // Responder con el código 201 si todo es exitoso
+    // Respond with code 201 if everything is successful
     return res.status(201).json({ message: 'Usuario registrado correctamente', user: newUser });
   } catch (error) {
-    // Agregar un log más detallado para capturar el error en producción
+    
     console.error("Error en el registro de usuario:", error);
     return res.status(500).json({ message: 'Error al registrar usuario', error: error.message });
   }

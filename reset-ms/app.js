@@ -4,10 +4,9 @@ const cors = require('cors');
 const { sequelize } = require('./config/db');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const passwordRoutes = require('./routes/passwordRoutes');  // Asegúrate de que la ruta sea correcta
+const passwordRoutes = require('./routes/resetRoutes');  // Asegúrate de que la ruta sea correcta
 
-dotenv.config();
-
+dotenv.config(); 
 const app = express();
 
 // Middleware
@@ -15,7 +14,7 @@ app.use(express.json());
 
 // Enable CORS
 app.use(cors({
-  origin: '*', 
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -41,13 +40,13 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api', passwordRoutes);
 
 // Swagger UI
-app.use('/api-docs-recovery', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api-docs-reset', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Connecting to the database and starting the server
 sequelize.authenticate()
   .then(() => {
     console.log('Conexión a la base de datos establecida con éxito');
-    sequelize.sync({ alter: true })  // Usamos 'alter' para actualizar las tablas sin perder datos
+    sequelize.sync({ alter: true }) 
       .then(() => {
         console.log('Modelos sincronizados');
       })
@@ -60,7 +59,7 @@ sequelize.authenticate()
   });
 
 // Server configuration
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3003;
 app.listen(port,'0.0.0.0', () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });

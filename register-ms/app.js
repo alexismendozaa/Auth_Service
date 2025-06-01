@@ -18,7 +18,12 @@ app.use('/api/auth', authRoutes);
 
 
 // CORS configuration
-app.use(cors());
+app.use(cors({
+  origin: '*',  // Permite todos los orígenes
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 
 // Multer configuration for file handling
 const storage = multer.memoryStorage();

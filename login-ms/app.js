@@ -4,14 +4,22 @@ const bodyParser = require('body-parser');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const authRoutes = require('./routes/authRoutes');
-const { sequelize } = require('./config/db');  // Importamos la conexión desde db.js
+const { sequelize } = require('./config/db'); 
 const path = require('path');
 dotenv.config();
+const cors = require('cors');
 
 const app = express();
-app.use(bodyParser.json()); // Para procesar JSON en el cuerpo de las solicitudes
+app.use(bodyParser.json());
 
-// Configuración de Swagger
+app.use(cors({
+  origin: '*',  
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
+// Configuration Swagger
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -21,27 +29,26 @@ const swaggerOptions = {
       description: 'API para la autenticación de usuarios',
     },
   },
-  apis: ['./routes/authRoutes.js'], // Aquí se encuentra la definición de las rutas
+  apis: ['./routes/authRoutes.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs-login', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Rutas de autenticación
 app.use('/api', authRoutes);
 
-// Verificar la conexión a la base de datos
+// Check the connection to the database
 sequelize.authenticate()
   .then(() => {
     console.log('¡Conexión exitosa a la base de datos!');
     
-    // Sincronizar los modelos después de verificar la conexión
-    sequelize.sync({ force: false })  // Usa { force: false } para evitar eliminar datos existentes
+    // Sync models after checking connection
+    sequelize.sync({ force: false }) 
       .then(() => {
         console.log('Modelos sincronizados correctamente con la base de datos.');
 
-        // Iniciar el servidor solo después de que la conexión y sincronización sean exitosas
-        const PORT = process.env.PORT || 3001;  // Cambiado el puerto a 3001
+        // Start the server only after connection and synchronization are successful
+        const PORT = process.env.PORT || 3001; 
         app.listen(PORT, () => {
           console.log(`Servidor corriendo en puerto ${PORT}`);
         });

@@ -1,8 +1,8 @@
 const { Sequelize, DataTypes } = require('sequelize');
-const { sequelize } = require('../config/db'); 
+const { sequelize } = require('../config/db');
 const uuid = require('uuid');
 
-
+// Definición del modelo de usuario
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.UUID,
@@ -24,7 +24,15 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
   profileImage: {
-    type: DataTypes.STRING,  // URL S3
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  resetPasswordToken: {
+    type: DataTypes.STRING, 
+    allowNull: true,
+  },
+  resetPasswordExpires: {
+    type: DataTypes.DATE,
     allowNull: true,
   },
 }, {
