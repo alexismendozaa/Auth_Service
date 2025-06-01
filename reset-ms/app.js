@@ -30,14 +30,14 @@ const swaggerOptions = {
       version: '1.0.0',
     },
   },
-  apis: ['./routes/passwordRoutes.js'],
+  apis: ['./routes/resetRoutes.js'],
 };
 
 // Generate Swagger documentation
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
 
-app.use('/api', passwordRoutes);
+app.use('/api', resetRoutes);
 
 // Swagger UI
 app.use('/api-docs-reset', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
