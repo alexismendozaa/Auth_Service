@@ -2,7 +2,6 @@ const { Sequelize, DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 const uuid = require('uuid');
 
-// Definición del modelo de usuario
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.UUID,

@@ -47,4 +47,4 @@ const resetPassword = async (req, res) => {
 };
 
 
-module.exports = { initiatePasswordReset, resetPassword };
+module.exports = {resetPassword };

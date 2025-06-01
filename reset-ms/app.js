@@ -4,7 +4,7 @@ const cors = require('cors');
 const { sequelize } = require('./config/db');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const passwordRoutes = require('./routes/resetRoutes');  // Asegúrate de que la ruta sea correcta
+const passwordRoutes = require('./routes/resetRoutes'); 
 
 dotenv.config(); 
 const app = express();

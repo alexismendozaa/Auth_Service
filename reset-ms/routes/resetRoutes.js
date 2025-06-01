@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { initiatePasswordReset, resetPassword } = require('../controllers/resetController');  // Asegúrate de que la ruta sea correcta
+const { initiatePasswordReset, resetPassword } = require('../controllers/resetController'); 
 
 /**
  * @swagger
