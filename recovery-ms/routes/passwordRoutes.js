@@ -4,7 +4,7 @@ const { initiatePasswordReset, resetPassword } = require('../controllers/passwor
 
 /**
  * @swagger
- * /api/password-reset:
+ * /api/recovery:
  *   post:
  *     summary: Inicia el proceso de restablecimiento de contraseña
  *     description: Envía un correo con el enlace para restablecer la contraseña
