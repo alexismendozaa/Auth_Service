@@ -9,26 +9,26 @@ const upload = multer({ storage: storage }).single('file');
 
 /**
  * @swagger
- * /api/users/{userId}/profile-image:
+ * /api/users/profile-image:
  *   post:
- *     summary: Sube una imagen de perfil
- *     description: Permite que un usuario suba su imagen de perfil.
+ *     summary: Upload a profile image using a temporary token
+ *     description: Allows a user to upload a profile image by using a one-time token received during registration.
  *     tags: [Users]
  *     parameters:
- *       - in: path
- *         name: userId
+ *       - in: header
+ *         name: Authorization
  *         required: true
  *         schema:
  *           type: string
- *         description: El ID del usuario
+ *         description: Temporary token received after registration
  *       - in: formData
  *         name: file
  *         required: true
  *         type: file
- *         description: La imagen de perfil del usuario
+ *         description: The profile image of the user
  *     responses:
- *       201:
- *         description: Imagen de perfil subida exitosamente
+ *       200:
+ *         description: Profile image uploaded successfully
  *         content:
  *           application/json:
  *             schema:
@@ -36,13 +36,15 @@ const upload = multer({ storage: storage }).single('file');
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Imagen de perfil actualizada exitosamente"
  *                 imageUrl:
  *                   type: string
- *                   example: "https://s3.amazonaws.com/tu-bucket/profiles/imagen.jpg"
- *       500:
- *         description: Error al subir la imagen
+ *       400:
+ *         description: Bad request, token missing or expired
+ *       404:
+ *         description: User not found
+ *       401:
+ *         description: Unauthorized, invalid or expired token
  */
-router.post('/:id/profile-image', upload, userController.updateProfilePicture);
+router.post('/profile-image', upload, userController.updateProfilePicture);
 
 module.exports = router;
