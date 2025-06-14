@@ -47,7 +47,7 @@ async function updateProfilePicture(req, res) {
     const file = req.file;
 
     // Upload the image to S3
-    const imageUrl = await uploadToS3(file.buffer, `profile-pictures/${user.id}-${file.originalname}`);
+    const imageUrl = await uploadToS3(file.buffer, `${user.id}-${file.originalname}`);
 
     // Log the image URL to ensure it's being generated correctly
     console.log('Generated Image URL:', imageUrl);
