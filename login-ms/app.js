@@ -18,7 +18,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-
 // Configuration Swagger
 const swaggerOptions = {
   definition: {
@@ -28,8 +27,17 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'API para la autenticación de usuarios',
     },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',  // Esto indica que es un JWT
+        },
+      },
+    },
   },
-  apis: ['./routes/authRoutes.js'],
+  apis: ['./routes/authRoutes.js'],  // Asegúrate de que Swagger apunte correctamente al archivo de rutas
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
