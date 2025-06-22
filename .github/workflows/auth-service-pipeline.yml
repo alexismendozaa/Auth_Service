@@ -53,7 +53,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 7: Login to Docker Hub
+      # Step 7: Docker Hub login
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -87,7 +87,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
 
           # Deploy to EC2 using Docker Compose
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_QA }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
             cd /path/to/deployment/directory
             # Stop and remove any existing container
             sudo docker-compose down || true
@@ -114,7 +114,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
 
           # Deploy to EC2 using Docker Compose
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
             cd /path/to/deployment/directory
             # Stop and remove any existing container
             sudo docker-compose down || true
