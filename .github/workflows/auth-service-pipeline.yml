@@ -80,7 +80,7 @@ jobs:
           mkdir -p ~/.ssh
 
           # Save the private SSH key for QA to id_rsa and set permissions
-          echo "$SSH_KEY_QA" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
+          echo "${{ secrets.SSH_KEY_QA }}" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
           chmod 600 ~/.ssh/id_rsa
 
           # Add the EC2 host's fingerprint to known_hosts
@@ -107,7 +107,7 @@ jobs:
           mkdir -p ~/.ssh
 
           # Save the private SSH key for PROD to id_rsa and set permissions
-          echo "$SSH_KEY_PROD" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
+          echo "${{ secrets.SSH_KEY_PROD }}" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
           chmod 600 ~/.ssh/id_rsa
 
           # Add the EC2 host's fingerprint to known_hosts
