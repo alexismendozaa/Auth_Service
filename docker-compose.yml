@@ -1,0 +1,44 @@
+services:
+  analysis-avatar-ms:
+    build:
+      context: ./analysis-avatar-ms
+    ports:
+      - "5000:3029"  # Mapea el puerto 3029 del contenedor al 5000 del host
+    networks:
+      - auth_network
+
+  login-ms:
+    build:
+      context: ./login-ms
+    ports:
+      - "5001:3001"  # Mapea el puerto 3001 del contenedor al 5001 del host
+    networks:
+      - auth_network
+
+  recovery-ms:
+    build:
+      context: ./recovery-ms
+    ports:
+      - "5002:3002"  # Mapea el puerto 3002 del contenedor al 5002 del host
+    networks:
+      - auth_network
+
+  register-ms:
+    build:
+      context: ./register-ms
+    ports:
+      - "5003:3000"  # Mapea el puerto 3000 del contenedor al 5003 del host
+    networks:
+      - auth_network
+
+  reset-ms:
+    build:
+      context: ./reset-ms
+    ports:
+      - "5004:3003"  # Mapea el puerto 3003 del contenedor al 5004 del host
+    networks:
+      - auth_network
+
+networks:
+  auth_network:
+    driver: bridge

@@ -1,80 +1,67 @@
-name: Login Service CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [test]
+    branches:
+      - main
+      - test
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-and-push:
+  ci-cd:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Step 2: Configure Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Step 3: Log in to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./login-ms
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
-          build-args: |
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_HOST=${{ secrets.DB_HOST }}
-
-  deploy-to-ec2:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install SSH key
+      # Step 4: Run functional tests tied to CI
+      - name: Run functional tests
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
-          ssh-keyscan ${{ secrets.LOGIN_EC2_HOST }} >> ~/.ssh/known_hosts
+          cd analysis-avatar-ms && npm install && npm test
+          cd ../login-ms && npm install && npm test
+          cd ../recovery-ms && npm install && npm test
+          cd ../register-ms && npm install && npm test
+          cd ../reset-ms && npm install && npm test
 
-      - name: Verify SSH connection
-        run: ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.LOGIN_EC2_HOST }} "echo 'SSH connection successful!'"
-
-      - name: Deploy to EC2
+      # Step 5: Build and upload the image to Docker Hub
+      - name: Build and push Docker images
         run: |
-          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.LOGIN_EC2_HOST }} << 'EOF'
-          # Stop and remove existing container
-          sudo docker stop login-ms || true
-          sudo docker rm login-ms || true
-          
-          # Pull the latest image from Docker Hub
-          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
-          
-          # Run new container with environment variables
-          sudo docker run -d \
-            --name login-ms \
-            -p 8001:3001 \
-            --restart unless-stopped \
-            -e DB_NAME=${{ secrets.DB_NAME }} \
-            -e DB_USER=${{ secrets.DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-            -e DB_HOST=${{ secrets.DB_HOST }} \
-            -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
-            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
-            -e APP_URL=http://lumisnap.sytes.net \
-            ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
+          docker-compose -f docker-compose.yml build
+          docker-compose -f docker-compose.yml push
 
+      # Step 6: Deploy to QA (if the branch is `test`)
+      - name: Deploy to EC2 QA
+        if: github.ref == 'refs/heads/test'
+        run: |
+          echo "Deploying to QA EC2 instance..."
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_KEY_QA }} ec2-user@${{ secrets.EC2_QA }} << 'EOF'
+            cd /path/to/deployment/directory
+            docker pull alexismendozaa/auth-service:latest
+            docker-compose -f docker-compose.yml up -d
+          EOF
 
-          
-          # Verify container is running
-          sudo docker ps | grep login-ms
+      # Step 7: Deploy to Production (if the branch is `main` or a PR to `main`)
+      - name: Deploy to EC2 PROD
+        if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
+        run: |
+          echo "Deploying to PROD EC2 instance..."
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_KEY_PROD }} ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
+            cd /path/to/deployment/directory
+            docker pull alexismendozaa/auth-service:latest
+            docker-compose -f docker-compose.yml up -d
           EOF
