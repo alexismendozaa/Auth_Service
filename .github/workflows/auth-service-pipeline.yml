@@ -86,15 +86,37 @@ jobs:
           # Add the EC2 host's fingerprint to known_hosts
           ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
 
-          # Deploy to EC2 using Docker Compose
+          # SSH into EC2 and deploy using Docker Compose
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
-            # No need to change to any directory, just run docker-compose directly
-            # Stop and remove any existing container
-            sudo docker-compose down || true
-            # Pull the latest image from Docker Hub
-            sudo docker-compose pull
-            # Bring up the services defined in docker-compose.yml
-            sudo docker-compose up -d
+            # Create the docker-compose.yml dynamically
+            echo "version: '3.8'
+            services:
+              analysis-avatar-ms:
+                image: alexismendozaa/analysis-avatar-ms:latest
+                ports:
+                  - '5000:3029'
+              login-ms:
+                image: alexismendozaa/login-ms:latest
+                ports:
+                  - '5001:3001'
+              recovery-ms:
+                image: alexismendozaa/recovery-ms:latest
+                ports:
+                  - '5002:3002'
+              register-ms:
+                image: alexismendozaa/register-ms:latest
+                ports:
+                  - '5003:3000'
+              reset-ms:
+                image: alexismendozaa/reset-ms:latest
+                ports:
+                  - '5004:3003'
+            networks:
+              default:
+                driver: bridge" > ~/docker-compose.yml
+
+            # Start the Docker Compose services
+            sudo docker-compose -f ~/docker-compose.yml up -d
           EOF
 
       # Step 11: Deploy to EC2 PROD (only if branch is 'main')
@@ -113,13 +135,35 @@ jobs:
           # Add the EC2 host's fingerprint to known_hosts
           ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
 
-          # Deploy to EC2 using Docker Compose
+          # SSH into EC2 and deploy using Docker Compose
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
-            # No need to change to any directory, just run docker-compose directly
-            # Stop and remove any existing container
-            sudo docker-compose down || true
-            # Pull the latest image from Docker Hub
-            sudo docker-compose pull
-            # Bring up the services defined in docker-compose.yml
-            sudo docker-compose up -d
+            # Create the docker-compose.yml dynamically
+            echo "version: '3.8'
+            services:
+              analysis-avatar-ms:
+                image: alexismendozaa/analysis-avatar-ms:latest
+                ports:
+                  - '5000:3029'
+              login-ms:
+                image: alexismendozaa/login-ms:latest
+                ports:
+                  - '5001:3001'
+              recovery-ms:
+                image: alexismendozaa/recovery-ms:latest
+                ports:
+                  - '5002:3002'
+              register-ms:
+                image: alexismendozaa/register-ms:latest
+                ports:
+                  - '5003:3000'
+              reset-ms:
+                image: alexismendozaa/reset-ms:latest
+                ports:
+                  - '5004:3003'
+            networks:
+              default:
+                driver: bridge" > ~/docker-compose.yml
+
+            # Start the Docker Compose services
+            sudo docker-compose -f ~/docker-compose.yml up -d
           EOF
