@@ -2,25 +2,25 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const dotenv = require('dotenv');
-dotenv.config();  // Cargar variables de entorno desde .env
-const userRoutes = require('./routes/userRoutes');  // Asegúrate de que la ruta sea correcta
+dotenv.config();  
+const userRoutes = require('./routes/userRoutes'); 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 const app = express();
-const port = 3029; // Puerto solicitado
+const port = 3029; 
 
-// Middleware para permitir el acceso desde cualquier origen
+
 app.use(cors());
 
-// Middleware para manejar los datos JSON y los formularios con archivos
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Rutas
-app.use( userRoutes);  // Las rutas que hemos creado en userRoutes.js, como '/analysis-avatar'
 
-// Configuración de Swagger para la nueva ruta
+app.use( userRoutes); 
+
+// Swagger
 const swaggerOptions = {
   swaggerDefinition: {
     info: {
@@ -41,17 +41,17 @@ const swaggerOptions = {
     },
     security: [
       {
-        BearerAuth: [],
+        BearerAuth: [],z
       },
     ],
   },
-  apis: ['./routes/userRoutes.js'],  // Asegúrate de que Swagger reconozca las rutas desde userRoutes.js
+  apis: ['./routes/userRoutes.js'],  
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs-analysis-avatar', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Iniciar el servidor
+
 app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+  console.log(`Servidor corriendo en http://0.0.0.0:${port}`);
 });

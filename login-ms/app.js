@@ -32,12 +32,12 @@ const swaggerOptions = {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT',  // Esto indica que es un JWT
+          bearerFormat: 'JWT',
         },
       },
     },
   },
-  apis: ['./routes/authRoutes.js'],  // Asegúrate de que Swagger apunte correctamente al archivo de rutas
+  apis: ['./routes/authRoutes.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

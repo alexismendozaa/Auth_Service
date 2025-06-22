@@ -47,7 +47,7 @@ app.use('/api-docs-recovery', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 sequelize.authenticate()
   .then(() => {
     console.log('Conexión a la base de datos establecida con éxito');
-    sequelize.sync({ alter: true })  // Usamos 'alter' para actualizar las tablas sin perder datos
+    sequelize.sync({ alter: true }) 
       .then(() => {
         console.log('Modelos sincronizados');
       })
