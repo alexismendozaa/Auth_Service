@@ -88,7 +88,7 @@ jobs:
 
           # Deploy to EC2 using Docker Compose
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
-            cd /  # Change to the root directory
+            # No need to change to any directory, just run docker-compose directly
             # Stop and remove any existing container
             sudo docker-compose down || true
             # Pull the latest image from Docker Hub
@@ -115,7 +115,7 @@ jobs:
 
           # Deploy to EC2 using Docker Compose
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
-            cd /  # Change to the root directory
+            # No need to change to any directory, just run docker-compose directly
             # Stop and remove any existing container
             sudo docker-compose down || true
             # Pull the latest image from Docker Hub
