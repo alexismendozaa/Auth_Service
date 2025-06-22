@@ -27,24 +27,35 @@ jobs:
       # Step 3: Install dependencies locally (outside of Docker containers)
       - name: Install dependencies
         run: |
-          cd analysis-avatar-ms && npm install  # Install dependencies for analysis-avatar-ms
-          cd ../login-ms && npm install  # Install dependencies for login-ms
-          cd ../recovery-ms && npm install  # Install dependencies for recovery-ms
-          cd ../register-ms && npm install  # Install dependencies for register-ms
-          cd ../reset-ms && npm install  # Install dependencies for reset-ms
+          echo "Installing dependencies for analysis-avatar-ms"
+          cd analysis-avatar-ms && npm install
+          echo "Installing dependencies for login-ms"
+          cd ../login-ms && npm install
+          echo "Installing dependencies for recovery-ms"
+          cd ../recovery-ms && npm install
+          echo "Installing dependencies for register-ms"
+          cd ../register-ms && npm install
+          echo "Installing dependencies for reset-ms"
+          cd ../reset-ms && npm install
 
       # Step 4: Run tests (only run tests in CI environment, no Docker dependencies)
       - name: Run tests
         run: |
-          cd analysis-avatar-ms && npm test  # Run tests for analysis-avatar-ms
-          cd ../login-ms && npm test  # Run tests for login-ms
-          cd ../recovery-ms && npm test  # Run tests for recovery-ms
-          cd ../register-ms && npm test  # Run tests for register-ms
-          cd ../reset-ms && npm test  # Run tests for reset-ms
+          echo "Running tests for analysis-avatar-ms"
+          cd analysis-avatar-ms && npm test
+          echo "Running tests for login-ms"
+          cd ../login-ms && npm test
+          echo "Running tests for recovery-ms"
+          cd ../recovery-ms && npm test
+          echo "Running tests for register-ms"
+          cd ../register-ms && npm test
+          echo "Running tests for reset-ms"
+          cd ../reset-ms && npm test
 
       # Step 5: Set up Docker Compose
       - name: Set up Docker Compose
         run: |
+          echo "Installing Docker Compose"
           sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version  # Verify Docker Compose installation
@@ -63,11 +74,13 @@ jobs:
       # Step 8: Build Docker images (based on the Dockerfiles already set up in each microservice)
       - name: Build Docker images
         run: |
+          echo "Building Docker images"
           docker-compose -f docker-compose.yml build  # Build Docker images
 
       # Step 9: Push Docker images to Docker Hub
       - name: Push Docker images
         run: |
+          echo "Pushing Docker images to Docker Hub"
           docker-compose -f docker-compose.yml push  # Push images to Docker Hub
 
       # Step 10: Deploy to EC2 QA (only if branch is 'test')
@@ -84,11 +97,15 @@ jobs:
           chmod 600 ~/.ssh/ec2_key
 
           # Add the EC2 host's fingerprint to known_hosts
+          echo "Adding EC2 host to known_hosts"
           ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
 
           # SSH into EC2 and deploy using Docker Compose
+          echo "SSH into EC2 and deploy using Docker Compose"
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
-            # Create the docker-compose.yml dynamically
+            echo "Creating docker-compose.yml dynamically"
+
+            # Generate docker-compose.yml
             echo "version: '3.8'
             services:
               analysis-avatar-ms:
@@ -115,8 +132,18 @@ jobs:
               default:
                 driver: bridge" > ~/docker-compose.yml
 
+            echo "docker-compose.yml created successfully"
+
+            # Check if the file exists
+            ls -l ~/docker-compose.yml
+
             # Start the Docker Compose services
+            echo "Running docker-compose up -d"
             sudo docker-compose -f ~/docker-compose.yml up -d
+
+            # Verify if the containers are up
+            echo "Checking running containers"
+            sudo docker ps
           EOF
 
       # Step 11: Deploy to EC2 PROD (only if branch is 'main')
@@ -133,11 +160,15 @@ jobs:
           chmod 600 ~/.ssh/ec2_key
 
           # Add the EC2 host's fingerprint to known_hosts
+          echo "Adding EC2 host to known_hosts"
           ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
 
           # SSH into EC2 and deploy using Docker Compose
+          echo "SSH into EC2 and deploy using Docker Compose"
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
-            # Create the docker-compose.yml dynamically
+            echo "Creating docker-compose.yml dynamically"
+
+            # Generate docker-compose.yml
             echo "version: '3.8'
             services:
               analysis-avatar-ms:
@@ -164,6 +195,16 @@ jobs:
               default:
                 driver: bridge" > ~/docker-compose.yml
 
+            echo "docker-compose.yml created successfully"
+
+            # Check if the file exists
+            ls -l ~/docker-compose.yml
+
             # Start the Docker Compose services
+            echo "Running docker-compose up -d"
             sudo docker-compose -f ~/docker-compose.yml up -d
+
+            # Verify if the containers are up
+            echo "Checking running containers"
+            sudo docker ps
           EOF
