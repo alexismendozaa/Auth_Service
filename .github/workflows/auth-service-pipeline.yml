@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node.js 18
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Use Node.js version 18
+          node-version: '18'
 
       # Step 3: Install dependencies locally (outside of Docker containers)
       - name: Install dependencies
@@ -100,12 +100,22 @@ jobs:
           echo "Adding EC2 host to known_hosts"
           ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
 
+          # Create .env file with all the secrets dynamically
+          echo "Creating .env file dynamically"
+          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> ~/docker-compose.env
+          echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> ~/docker-compose.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> ~/docker-compose.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> ~/docker-compose.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> ~/docker-compose.env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> ~/docker-compose.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ~/docker-compose.env
+
           # SSH into EC2 and deploy using Docker Compose
           echo "SSH into EC2 and deploy using Docker Compose"
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
             echo "Creating docker-compose.yml dynamically"
 
-            # Generate docker-compose.yml
+            # Generate docker-compose.yml with proper formatting
             cat <<EOL > ~/docker-compose.yml
             version: '3.8'
             services:
@@ -113,22 +123,32 @@ jobs:
                 image: alexismendozaa/analysis-avatar-ms:latest
                 ports:
                   - '5000:3029'
+                env_file:
+                  - ~/docker-compose.env
               login-ms:
                 image: alexismendozaa/login-ms:latest
                 ports:
                   - '5001:3001'
+                env_file:
+                  - ~/docker-compose.env
               recovery-ms:
                 image: alexismendozaa/recovery-ms:latest
                 ports:
                   - '5002:3002'
+                env_file:
+                  - ~/docker-compose.env
               register-ms:
                 image: alexismendozaa/register-ms:latest
                 ports:
                   - '5003:3000'
+                env_file:
+                  - ~/docker-compose.env
               reset-ms:
                 image: alexismendozaa/reset-ms:latest
                 ports:
                   - '5004:3003'
+                env_file:
+                  - ~/docker-compose.env
             networks:
               default:
                 driver: bridge
@@ -169,12 +189,22 @@ jobs:
           echo "Adding EC2 host to known_hosts"
           ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
 
+          # Create .env file with all the secrets dynamically
+          echo "Creating .env file dynamically"
+          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> ~/docker-compose.env
+          echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> ~/docker-compose.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> ~/docker-compose.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> ~/docker-compose.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> ~/docker-compose.env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> ~/docker-compose.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ~/docker-compose.env
+
           # SSH into EC2 and deploy using Docker Compose
           echo "SSH into EC2 and deploy using Docker Compose"
           ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
             echo "Creating docker-compose.yml dynamically"
 
-            # Generate docker-compose.yml
+            # Generate docker-compose.yml with proper formatting
             cat <<EOL > ~/docker-compose.yml
             version: '3.8'
             services:
@@ -182,22 +212,32 @@ jobs:
                 image: alexismendozaa/analysis-avatar-ms:latest
                 ports:
                   - '5000:3029'
+                env_file:
+                  - ~/docker-compose.env
               login-ms:
                 image: alexismendozaa/login-ms:latest
                 ports:
                   - '5001:3001'
+                env_file:
+                  - ~/docker-compose.env
               recovery-ms:
                 image: alexismendozaa/recovery-ms:latest
                 ports:
                   - '5002:3002'
+                env_file:
+                  - ~/docker-compose.env
               register-ms:
                 image: alexismendozaa/register-ms:latest
                 ports:
                   - '5003:3000'
+                env_file:
+                  - ~/docker-compose.env
               reset-ms:
                 image: alexismendozaa/reset-ms:latest
                 ports:
                   - '5004:3003'
+                env_file:
+                  - ~/docker-compose.env
             networks:
               default:
                 driver: bridge
