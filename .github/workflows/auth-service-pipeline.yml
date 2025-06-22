@@ -23,7 +23,7 @@ jobs:
     # Paso 3: Convertir el secreto SSH_KEY_QA a archivo .pem
     - name: Create SSH private key
       run: |
-        echo "$SSH_KEY_QA" > private_key.pem
+        echo "${{ secrets.SSH_KEY_QA }}" > private_key.pem  # Accedemos al secreto correctamente
         chmod 600 private_key.pem
         cat private_key.pem  # Verificar que la clave se haya creado correctamente
 
