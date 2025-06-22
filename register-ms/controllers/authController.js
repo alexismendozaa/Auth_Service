@@ -4,10 +4,31 @@ const User = require('../models/User');
 const dotenv = require('dotenv');
 dotenv.config();
 
+
+let tokenUsage = {}; 
+
 // Function to generate a unique, temporary token
 const generateTempToken = (userId) => {
   // Set the expiration time to 10 minutes (600 seconds)
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '10m' });
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '10m' });
+
+  // Initialize the usage counter to 0
+  tokenUsage[token] = 0;
+
+  return token;
+};
+
+// Function to verify the token and its usage count
+const verifyTokenUsage = (token) => {
+  // Check if the token has been used more than 3 times
+  if (tokenUsage[token] >= 3) {
+    return false; // Token is no longer valid
+  }
+
+  // Increment the usage count
+  tokenUsage[token]++;
+
+  return true; // Token is valid for use
 };
 
 const register = async (req, res) => {
@@ -45,4 +66,4 @@ const register = async (req, res) => {
   }
 };
 
-module.exports = { register };
+module.exports = { register, verifyTokenUsage };
