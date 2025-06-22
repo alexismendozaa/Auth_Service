@@ -14,38 +14,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    
+      # Paso 1: Checkout del repositorio
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      
+      # Paso 2: Instalar Docker Compose
+      - name: Set up Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version  # Verifica que Docker Compose esté instalado correctamente
+
+      # Paso 3: Configurar Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      
+      # Paso 4: Login en Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      
+      # Paso 5: Construir las imágenes Docker y ejecutar las pruebas
       - name: Build and run tests in Docker containers
         run: |
           docker-compose -f docker-compose.yml build  # Construir las imágenes
-          docker-compose -f docker-compose.yml run --rm register-ms npm test 
-          docker-compose -f docker-compose.yml run --rm login-ms npm test  
-          docker-compose -f docker-compose.yml run --rm recovery-ms npm test  
-          docker-compose -f docker-compose.yml run --rm analysis-avatar-ms npm test 
-          docker-compose -f docker-compose.yml run --rm reset-ms npm test  
+          docker-compose -f docker-compose.yml run --rm register-ms npm test  # Ejecutar las pruebas en el contenedor de register-ms
+          docker-compose -f docker-compose.yml run --rm login-ms npm test  # Ejecutar las pruebas en el contenedor de login-ms
+          docker-compose -f docker-compose.yml run --rm recovery-ms npm test  # Ejecutar las pruebas en el contenedor de recovery-ms
+          docker-compose -f docker-compose.yml run --rm analysis-avatar-ms npm test  # Ejecutar las pruebas en el contenedor de analysis-avatar-ms
+          docker-compose -f docker-compose.yml run --rm reset-ms npm test  # Ejecutar las pruebas en el contenedor de reset-ms
 
-
+      # Paso 6: Construir y subir la imagen a Docker Hub
       - name: Build and push Docker images
         run: |
           docker-compose -f docker-compose.yml build
           docker-compose -f docker-compose.yml push
 
-
+      # Paso 7: Deploy en QA (si la rama es `test`)
       - name: Deploy to EC2 QA
         if: github.ref == 'refs/heads/test'
         run: |
@@ -56,7 +63,7 @@ jobs:
             docker-compose -f docker-compose.yml up -d
           EOF
 
-     
+      # Paso 8: Deploy en Producción (si la rama es `main` o un PR a `main`)
       - name: Deploy to EC2 PROD
         if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
         run: |
