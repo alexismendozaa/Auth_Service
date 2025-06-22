@@ -16,14 +16,12 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');  
 app.use('/api/auth', authRoutes);  
 
-
 // CORS configuration
 app.use(cors({
   origin: '*',  // Permite todos los orígenes
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 
 // Multer configuration for file handling
 const storage = multer.memoryStorage();
@@ -106,6 +104,7 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
 });
 
 // Start the server
+const PORT = process.env.PORT || 3000; // <--- Aquí se define PORT antes de usarlo
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
