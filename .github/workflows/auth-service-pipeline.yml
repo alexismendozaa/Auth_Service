@@ -70,7 +70,7 @@ jobs:
         run: |
           docker-compose -f docker-compose.yml push  # Push images to Docker Hub
 
-      # Step 10: Deploy to QA (only if branch is 'test')
+      # Step 10: Deploy to EC2 QA (only if branch is 'test')
       - name: Deploy to EC2 QA
         if: github.ref == 'refs/heads/test'
         run: |
@@ -79,15 +79,15 @@ jobs:
           # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
 
-          # Save the private SSH key for QA to id_rsa and set permissions
-          echo "${{ secrets.SSH_KEY_QA }}" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
-          chmod 600 ~/.ssh/id_rsa
+          # Save the private SSH key for QA to ec2_key and set permissions
+          echo "${{ secrets.SSH_KEY_QA }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
 
           # Add the EC2 host's fingerprint to known_hosts
           ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
 
           # Deploy to EC2 using Docker Compose
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
+          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
             cd /path/to/deployment/directory
             # Stop and remove any existing container
             sudo docker-compose down || true
@@ -97,7 +97,7 @@ jobs:
             sudo docker-compose up -d
           EOF
 
-      # Step 11: Deploy to Production (only if branch is 'main' or a PR to 'main')
+      # Step 11: Deploy to EC2 PROD (only if branch is 'main')
       - name: Deploy to EC2 PROD
         if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
         run: |
@@ -106,15 +106,15 @@ jobs:
           # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
 
-          # Save the private SSH key for PROD to id_rsa and set permissions
-          echo "${{ secrets.SSH_KEY_PROD }}" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
-          chmod 600 ~/.ssh/id_rsa
+          # Save the private SSH key for PROD to ec2_key and set permissions
+          echo "${{ secrets.SSH_KEY_PROD }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
 
           # Add the EC2 host's fingerprint to known_hosts
           ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
 
           # Deploy to EC2 using Docker Compose
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
+          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
             cd /path/to/deployment/directory
             # Stop and remove any existing container
             sudo docker-compose down || true
