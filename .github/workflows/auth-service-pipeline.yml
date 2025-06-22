@@ -20,6 +20,12 @@ jobs:
         sudo chmod +x /usr/local/bin/docker-compose
         docker-compose --version
 
+    # Convertir el secreto SSH_KEY_QA a archivo .pem
+    - name: Create SSH private key
+      run: |
+        echo "$SSH_KEY_QA" > private_key.pem
+        chmod 600 private_key.pem
+
     # Configurar Docker para construir y subir las imágenes
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -52,7 +58,7 @@ jobs:
       with:
         host: ${{ secrets.EC2_QA }}
         username: ubuntu
-        key: ${{ secrets.SSH_KEY_QA }}
+        key: ./private_key.pem  # Usar la clave privada convertida
         port: 22
         source: "./docker-compose.yml"
         target: "/home/ubuntu/docker-compose.yml"
@@ -63,8 +69,9 @@ jobs:
       with:
         host: ${{ secrets.EC2_QA }}
         username: ubuntu
-        key: ${{ secrets.SSH_KEY_QA }}
+        key: ./private_key.pem  # Usar la clave privada convertida
         port: 22
+        debug: true
         script: |
           # Exportar las variables de entorno necesarias
           export DB_HOST=${{ secrets.DB_HOST }}
