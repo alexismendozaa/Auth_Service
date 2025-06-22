@@ -29,6 +29,10 @@ jobs:
     - name: Push Docker images to Docker Hub
       run: |
         docker-compose -f docker-compose.yml push
+      env:
+        DOCKER_CLI_EXPERIMENTAL: enabled
+        DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
 
     # Paso 5: Conectar a EC2 y ejecutar los contenedores directamente desde Docker Hub
     - name: Deploy to EC2 via SSH
