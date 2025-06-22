@@ -1,41 +1,48 @@
+version: '3.8'
+
 services:
   analysis-avatar-ms:
     build:
       context: ./analysis-avatar-ms
+    image: alexismendozaa/analysis-avatar-ms:latest  
     ports:
-      - "5000:3029"  # Mapea el puerto 3029 del contenedor al 5000 del host
+      - "5000:3029"
     networks:
       - auth_network
 
   login-ms:
     build:
       context: ./login-ms
+    image: alexismendozaa/login-ms:latest 
     ports:
-      - "5001:3001"  # Mapea el puerto 3001 del contenedor al 5001 del host
+      - "5001:3001"
     networks:
       - auth_network
 
   recovery-ms:
     build:
       context: ./recovery-ms
+    image: alexismendozaa/recovery-ms:latest 
     ports:
-      - "5002:3002"  # Mapea el puerto 3002 del contenedor al 5002 del host
+      - "5002:3002"
     networks:
       - auth_network
 
   register-ms:
     build:
       context: ./register-ms
+    image: alexismendozaa/register-ms:latest
     ports:
-      - "5003:3000"  # Mapea el puerto 3000 del contenedor al 5003 del host
+      - "5003:3000"
     networks:
       - auth_network
 
   reset-ms:
     build:
       context: ./reset-ms
+    image: alexismendozaa/reset-ms:latest
     ports:
-      - "5004:3003"  # Mapea el puerto 3003 del contenedor al 5004 del host
+      - "5004:3003"
     networks:
       - auth_network
 

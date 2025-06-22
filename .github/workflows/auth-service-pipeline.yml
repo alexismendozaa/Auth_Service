@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -53,7 +53,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 7: Docker Hub login
+      # Step 7: Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -76,21 +76,24 @@ jobs:
         run: |
           echo "Deploying to QA EC2 instance..."
           
-          # Crear el directorio .ssh si no existe
+          # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
 
-          # Guardar la clave privada SSH de QA en el archivo id_rsa y asegurar permisos
-          echo "$SSH_KEY_QA" | base64 -d > ~/.ssh/id_rsa
+          # Save the private SSH key for QA to id_rsa and set permissions
+          echo "$SSH_KEY_QA" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
           chmod 600 ~/.ssh/id_rsa
 
-          # Desplegar en EC2 usando Docker Compose
+          # Add the EC2 host's fingerprint to known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
+
+          # Deploy to EC2 using Docker Compose
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_QA }} << 'EOF'
             cd /path/to/deployment/directory
-            # Detener y eliminar cualquier contenedor existente
+            # Stop and remove any existing container
             sudo docker-compose down || true
-            # Descargar la última imagen de Docker Hub
+            # Pull the latest image from Docker Hub
             sudo docker-compose pull
-            # Levantar los servicios definidos en docker-compose.yml
+            # Bring up the services defined in docker-compose.yml
             sudo docker-compose up -d
           EOF
 
@@ -100,20 +103,23 @@ jobs:
         run: |
           echo "Deploying to PROD EC2 instance..."
 
-          # Crear el directorio .ssh si no existe
+          # Create the .ssh directory if it doesn't exist
           mkdir -p ~/.ssh
 
-          # Guardar la clave privada SSH de PROD en el archivo id_rsa y asegurar permisos
-          echo "$SSH_KEY_PROD" | base64 -d > ~/.ssh/id_rsa
+          # Save the private SSH key for PROD to id_rsa and set permissions
+          echo "$SSH_KEY_PROD" | base64 -d > ~/.ssh/id_rsa  # Decode the key if it's in base64 format
           chmod 600 ~/.ssh/id_rsa
 
-          # Desplegar en EC2 usando Docker Compose
+          # Add the EC2 host's fingerprint to known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
+
+          # Deploy to EC2 using Docker Compose
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
             cd /path/to/deployment/directory
-            # Detener y eliminar cualquier contenedor existente
+            # Stop and remove any existing container
             sudo docker-compose down || true
-            # Descargar la última imagen de Docker Hub
+            # Pull the latest image from Docker Hub
             sudo docker-compose pull
-            # Levantar los servicios definidos en docker-compose.yml
+            # Bring up the services defined in docker-compose.yml
             sudo docker-compose up -d
           EOF
