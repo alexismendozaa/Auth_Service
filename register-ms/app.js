@@ -10,9 +10,11 @@ const path = require('path');
 
 dotenv.config();
 const app = express();
+
 // Middleware to parse JSON in the request body
 app.use(express.json()); 
 
+// Rutas de autenticación
 const authRoutes = require('./routes/authRoutes');  
 app.use('/api/auth', authRoutes);  
 
@@ -41,6 +43,12 @@ const swaggerOptions = {
         description: 'Operaciones relacionadas con los usuarios',
       },
     ],
+    servers: [
+      {
+        url: 'http://localhost:5000',
+        description: 'API documentation',
+      },
+    ],
     produces: ['application/json'],
   },
   apis: ['./routes/*.js'],
@@ -48,9 +56,10 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
+// Use Swagger UI at /api-docs-register
 app.use('/api-docs-register', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Routes
+// Routes for user management
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
