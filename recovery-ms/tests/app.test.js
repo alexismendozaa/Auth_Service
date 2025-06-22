@@ -1,23 +1,20 @@
-// tests/app.test.js para register-ms
 const request = require('supertest');
-const app = require('../app'); // Suponiendo que app.js es tu servidor Express
+const app = require('../app'); 
 
-describe('POST /register', () => {
-  it('should return 200 for successful registration', async () => {
+describe('POST /recovery', () => {
+  it('should return 200 for a valid recovery request', async () => {
     const response = await request(app)
-      .post('/register')
-      .send({ username: 'newuser', password: 'newpassword' });
-    
+      .post('/recovery')
+      .send({ email: 'user@example.com' });
+
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('message', 'Registration successful');
   });
 
-  it('should return 400 for missing fields', async () => {
+  it('should return 400 for an invalid email', async () => {
     const response = await request(app)
-      .post('/register')
-      .send({ username: 'newuser' });  // Falta el campo de la contraseña
-    
+      .post('/recovery')
+      .send({ email: 'invalid-email' });
+
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty('error', 'Password is required');
   });
 });

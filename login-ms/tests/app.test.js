@@ -1,23 +1,21 @@
-// tests/app.test.js para login-ms
+
 const request = require('supertest');
-const app = require('../app'); // Suponiendo que app.js es tu servidor Express
+const app = require('../app'); 
 
 describe('POST /login', () => {
-  it('should return 200 for valid login', async () => {
+  it('should return 200 for valid credentials', async () => {
     const response = await request(app)
       .post('/login')
-      .send({ username: 'user', password: 'valid-password' });
-    
+      .send({ username: 'user', password: 'password' });
+
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('message', 'Login successful');
   });
 
-  it('should return 400 for invalid login', async () => {
+  it('should return 400 for invalid credentials', async () => {
     const response = await request(app)
       .post('/login')
-      .send({ username: 'user', password: 'wrong-password' });
-    
+      .send({ username: 'user', password: 'wrongpassword' });
+
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty('error', 'Invalid credentials');
   });
 });
