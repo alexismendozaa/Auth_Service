@@ -18,22 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js environment
-      - name: Set up Node.js 18
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'  # Use Node.js version 18
-
-      # Step 3: Install dependencies (install dependencies for each microservice if needed)
-      - name: Install dependencies
-        run: |
-          cd analysis-avatar-ms && npm install  # Install dependencies for analysis-avatar-ms
-          cd ../login-ms && npm install  # Install dependencies for login-ms
-          cd ../recovery-ms && npm install  # Install dependencies for recovery-ms
-          cd ../register-ms && npm install  # Install dependencies for register-ms
-          cd ../reset-ms && npm install  # Install dependencies for reset-ms
-
-      # Step 4: Run tests in the CI environment (run tests for each microservice)
+      # Step 2: Run tests 
       - name: Run tests
         run: |
           cd analysis-avatar-ms && npm test  # Run tests for analysis-avatar-ms
@@ -42,51 +27,55 @@ jobs:
           cd ../register-ms && npm test  # Run tests for register-ms
           cd ../reset-ms && npm test  # Run tests for reset-ms
 
-      # Step 5: Set up Docker Compose
+      # Step 3: Set up Docker Compose 
       - name: Set up Docker Compose
         run: |
           sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version  # Verify Docker Compose installation
 
-      # Step 6: Set up Docker Buildx
+      # Step 4: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 7: Docker Hub login
+      # Step 5: Docker Hub login
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 8: Build Docker images
+      # Step 6: Build Docker images (based on the Dockerfiles already set up in each microservice)
       - name: Build Docker images
         run: |
           docker-compose -f docker-compose.yml build  # Build Docker images
 
-      # Step 9: Push Docker images to Docker Hub
+      # Step 7: Push Docker images to Docker Hub
       - name: Push Docker images
         run: |
           docker-compose -f docker-compose.yml push  # Push images to Docker Hub
 
-      # Step 10: Deploy to QA (only if branch is 'test')
+      # Step 8: Deploy to QA (only if branch is 'test')
       - name: Deploy to EC2 QA
         if: github.ref == 'refs/heads/test'
         run: |
           echo "Deploying to QA EC2 instance..."
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_KEY_QA }} ec2-user@${{ secrets.EC2_QA }} << 'EOF'
+          echo "$SSH_KEY_QA" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_QA }} << 'EOF'
             cd /path/to/deployment/directory
             docker pull alexismendozaa/auth-service:latest
             docker-compose -f docker-compose.yml up -d
           EOF
 
-      # Step 11: Deploy to Production (only if branch is 'main' or a PR to 'main')
+      # Step 9: Deploy to Production (only if branch is 'main' or a PR to 'main')
       - name: Deploy to EC2 PROD
         if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
         run: |
           echo "Deploying to PROD EC2 instance..."
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_KEY_PROD }} ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
+          echo "$SSH_KEY_PROD" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
             cd /path/to/deployment/directory
             docker pull alexismendozaa/auth-service:latest
             docker-compose -f docker-compose.yml up -d
