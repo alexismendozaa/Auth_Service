@@ -1,86 +1,102 @@
-name: Login Service CI/CD
+name: Docker Build and Push
 
 on:
   push:
-    branches: [test]
+    branches:
+      - test
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-
-    steps:
-      # Paso 1: Checkout del repositorio
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Paso 2: Configuración de Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # Paso 3: Login en Docker Hub
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # Paso 4: Construir y subir la imagen a Docker Hub
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./login-ms
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
-          build-args: |
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_HOST=${{ secrets.DB_HOST }}
-
-  deploy-to-ec2:
-    needs: build-and-push
+  build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      # Paso 1: Instalar la clave SSH en el runner
-      - name: Install SSH key
-        run: |
+    # Checkout del código
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    # Instalar Docker Compose
+    - name: Install Docker Compose
+      run: |
+        sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        docker-compose --version
+
+    # Convertir el secreto SSH_KEY_QA a archivo .pem
+    - name: Create SSH private key
+      run: |
+        echo "$SSH_KEY_QA" > private_key.pem
+        chmod 600 private_key.pem
+        cat private_key.pem  # Verificar que la clave se haya creado correctamente
+
+    # Configurar Docker para construir y subir las imágenes
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # Cache Docker layers
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    # Login a DockerHub usando los secretos
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Construir y empujar las imágenes a DockerHub usando Docker Compose
+    - name: Build and push images using Docker Compose
+      run: |
+        docker-compose -f docker-compose.yml build
+        docker-compose -f docker-compose.yml push
+
+    # Copiar docker-compose.yml a la instancia EC2 y reemplazar cualquier archivo existente
+    - name: Copy docker-compose.yml to EC2
+      uses: appleboy/scp-action@v0.1.2
+      with:
+        host: ${{ secrets.EC2_QA }}
+        username: ubuntu
+        key: ./private_key.pem  # Usar la clave privada convertida
+        port: 22
+        source: "./docker-compose.yml"
+        target: "/home/ubuntu/docker-compose.yml"
+
+    # Ejecutar los contenedores en EC2 usando SSH
+    - name: SSH to EC2 and run Docker Compose
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_QA }}
+        username: ubuntu
+        key: ./private_key.pem  # Usar la clave privada convertida
+        port: 22
+        debug: true
+        script: |
+          # Crear el directorio ~/.ssh si no existe
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key  # Cargar la clave privada desde los secretos de GitHub
-          chmod 600 ~/.ssh/ec2_key  # Asegurarse de que la clave tenga los permisos adecuados
-          ssh-keyscan ${{ secrets.LOGIN_EC2_HOST }} >> ~/.ssh/known_hosts  # Añadir la clave del host de EC2 a known_hosts
-
-      # Paso 2: Verificar la conexión SSH a EC2
-      - name: Verify SSH connection
-        run: |
-          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.LOGIN_EC2_HOST }} "echo 'SSH connection successful!'"
-
-      # Paso 3: Desplegar a EC2
-      - name: Deploy to EC2
-        run: |
-          ssh -i ~/.ssh/ec2_key ubuntu@${{ secrets.LOGIN_EC2_HOST }} << 'EOF'
-          # Detener y eliminar el contenedor existente
-          sudo docker stop login-ms || true
-          sudo docker rm login-ms || true
           
-          # Descargar la última imagen desde Docker Hub
-          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
-          
-          # Ejecutar un nuevo contenedor con las variables de entorno
-          sudo docker run -d \
-            --name login-ms \
-            -p 8001:3001 \
-            --restart unless-stopped \
-            -e DB_NAME=${{ secrets.DB_NAME }} \
-            -e DB_USER=${{ secrets.DB_USER }} \
-            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-            -e DB_HOST=${{ secrets.DB_HOST }} \
-            -e S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
-            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
-            -e APP_URL=http://lumisnap.sytes.net \
-            ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
+          # Añadir la clave pública del host de EC2 al archivo known_hosts
+          ssh-keyscan -H ${{ secrets.LOGIN_EC2_HOST }} >> ~/.ssh/known_hosts
 
-          # Verificar que el contenedor esté en ejecución
-          sudo docker ps | grep login-ms
-          EOF
+          # Exportar las variables de entorno necesarias
+          export DB_HOST=${{ secrets.DB_HOST }}
+          export DB_NAME=${{ secrets.DB_NAME }}
+          export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          export DB_USER=${{ secrets.DB_USER }}
+          export JWT_SECRET=${{ secrets.JWT_SECRET }}
+          export JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}
+          export S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          export SIGHTENGINE_API_KEY=${{ secrets.SIGHTENGINE_API_KEY }}
+          export SIGHTENGINE_API_USER=${{ secrets.SIGHTENGINE_API_USER }}
+
+          # Descargar las imágenes de Docker desde DockerHub
+          docker pull alexismendozaa/analysis-avatar-ms:latest
+          docker pull alexismendozaa/login-ms:latest
+          docker pull alexismendozaa/recovery-ms:latest
+          docker pull alexismendozaa/register-ms:latest
+          docker pull alexismendozaa/reset-ms:latest
+          
+          # Ejecutar los contenedores con Docker Compose
+          docker-compose -f /home/ubuntu/docker-compose.yml up -d
