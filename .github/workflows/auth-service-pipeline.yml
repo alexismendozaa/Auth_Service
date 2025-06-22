@@ -24,23 +24,16 @@ jobs:
         with:
           node-version: '18'  # Use Node.js version 18
 
-      # Step 3: Install dependencies (install dependencies for each microservice if needed)
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
-          cd analysis-avatar-ms && npm install  # Install dependencies for analysis-avatar-ms
-          cd ../login-ms && npm install  # Install dependencies for login-ms
-          cd ../recovery-ms && npm install  # Install dependencies for recovery-ms
-          cd ../register-ms && npm install  # Install dependencies for register-ms
-          cd ../reset-ms && npm install  # Install dependencies for reset-ms
+          npm install  # Install project dependencies
 
-      # Step 4: Run tests in the CI environment (run tests for each microservice)
+      # Step 4: Run tests in the CI environment
       - name: Run tests
         run: |
-          cd analysis-avatar-ms && npm test  # Run tests for analysis-avatar-ms
-          cd ../login-ms && npm test  # Run tests for login-ms
-          cd ../recovery-ms && npm test  # Run tests for recovery-ms
-          cd ../register-ms && npm test  # Run tests for register-ms
-          cd ../reset-ms && npm test  # Run tests for reset-ms
+          # Run tests using jest and specify that it's in a test environment
+          NODE_ENV=test npm test  # This sets the environment variable to 'test'
 
       # Step 5: Set up Docker Compose
       - name: Set up Docker Compose
