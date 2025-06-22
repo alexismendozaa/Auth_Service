@@ -6,7 +6,7 @@ services:
       context: ./analysis-avatar-ms
     image: alexismendozaa/analysis-avatar-ms:latest  
     ports:
-      - "5000:3029"
+      - "5029:3029"
     networks:
       - auth_network
 
@@ -33,7 +33,7 @@ services:
       context: ./register-ms
     image: alexismendozaa/register-ms:latest
     ports:
-      - "5003:3000"
+      - "5000:3000"
     networks:
       - auth_network
 
@@ -42,7 +42,7 @@ services:
       context: ./reset-ms
     image: alexismendozaa/reset-ms:latest
     ports:
-      - "5004:3003"
+      - "5003:3003"
     networks:
       - auth_network
 

@@ -1,262 +1,80 @@
-name: CI/CD Pipeline
+name: Docker Build and Push
 
 on:
   push:
     branches:
-      - main
       - test
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  ci-cd:
+  build_and_deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    # Checkout del código
+    - name: Check out code
+      uses: actions/checkout@v2
 
-      # Step 2: Set up Node.js environment
-      - name: Set up Node.js 18
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
+    # Configurar Docker para construir y subir las imágenes
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      # Step 3: Install dependencies locally (outside of Docker containers)
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies for analysis-avatar-ms"
-          cd analysis-avatar-ms && npm install
-          echo "Installing dependencies for login-ms"
-          cd ../login-ms && npm install
-          echo "Installing dependencies for recovery-ms"
-          cd ../recovery-ms && npm install
-          echo "Installing dependencies for register-ms"
-          cd ../register-ms && npm install
-          echo "Installing dependencies for reset-ms"
-          cd ../reset-ms && npm install
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
 
-      # Step 4: Run tests (only run tests in CI environment, no Docker dependencies)
-      - name: Run tests
-        run: |
-          echo "Running tests for analysis-avatar-ms"
-          cd analysis-avatar-ms && npm test
-          echo "Running tests for login-ms"
-          cd ../login-ms && npm test
-          echo "Running tests for recovery-ms"
-          cd ../recovery-ms && npm test
-          echo "Running tests for register-ms"
-          cd ../register-ms && npm test
-          echo "Running tests for reset-ms"
-          cd ../reset-ms && npm test
+    # Login a DockerHub usando los secretos
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 5: Set up Docker Compose
-      - name: Set up Docker Compose
-        run: |
-          echo "Installing Docker Compose"
-          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version  # Verify Docker Compose installation
+    # Construir y empujar las imágenes a DockerHub usando Docker Compose
+    - name: Build and push images using Docker Compose
+      run: |
+        docker-compose -f docker-compose.yml build
+        docker-compose -f docker-compose.yml push
 
-      # Step 6: Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    # Copiar docker-compose.yml a la instancia EC2 y reemplazar cualquier archivo existente
+    - name: Copy docker-compose.yml to EC2
+      uses: appleboy/scp-action@v0.1.2
+      with:
+        host: ${{ secrets.EC2_QA }}
+        username: ubuntu
+        key: ${{ secrets.SSH_KEY_QA }}
+        port: 22
+        source: "./docker-compose.yml"
+        target: "/home/ubuntu/docker-compose.yml"
 
-      # Step 7: Docker Hub login
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    # Ejecutar los contenedores en EC2 usando SSH
+    - name: SSH to EC2 and run Docker Compose
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_QA }}
+        username: ubuntu
+        key: ${{ secrets.SSH_KEY_QA }}
+        port: 22
+        script: |
+          # Exportar las variables de entorno necesarias
+          export DB_HOST=${{ secrets.DB_HOST }}
+          export DB_NAME=${{ secrets.DB_NAME }}
+          export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          export DB_USER=${{ secrets.DB_USER }}
+          export JWT_SECRET=${{ secrets.JWT_SECRET }}
+          export JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}
+          export S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          export SIGHTENGINE_API_KEY=${{ secrets.SIGHTENGINE_API_KEY }}
+          export SIGHTENGINE_API_USER=${{ secrets.SIGHTENGINE_API_USER }}
 
-      # Step 8: Build Docker images (based on the Dockerfiles already set up in each microservice)
-      - name: Build Docker images
-        run: |
-          echo "Building Docker images"
-          docker-compose -f docker-compose.yml build  # Build Docker images
-
-      # Step 9: Push Docker images to Docker Hub
-      - name: Push Docker images
-        run: |
-          echo "Pushing Docker images to Docker Hub"
-          docker-compose -f docker-compose.yml push  # Push images to Docker Hub
-
-      # Step 10: Deploy to EC2 QA (only if branch is 'test')
-      - name: Deploy to EC2 QA
-        if: github.ref == 'refs/heads/test'
-        run: |
-          echo "Deploying to QA EC2 instance..."
+          # Descargar las imágenes de Docker desde DockerHub
+          docker pull alexismendozaa/analysis-avatar-ms:latest
+          docker pull alexismendozaa/login-ms:latest
+          docker pull alexismendozaa/recovery-ms:latest
+          docker pull alexismendozaa/register-ms:latest
+          docker pull alexismendozaa/reset-ms:latest
           
-          # Create the .ssh directory if it doesn't exist
-          mkdir -p ~/.ssh
-
-          # Save the private SSH key for QA to ec2_key and set permissions
-          echo "${{ secrets.SSH_KEY_QA }}" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
-
-          # Add the EC2 host's fingerprint to known_hosts
-          echo "Adding EC2 host to known_hosts"
-          ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
-
-          # Create .env file with all the secrets dynamically
-          echo "Creating .env file dynamically"
-          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> ~/docker-compose.env
-          echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> ~/docker-compose.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> ~/docker-compose.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> ~/docker-compose.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> ~/docker-compose.env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> ~/docker-compose.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ~/docker-compose.env
-
-          # SSH into EC2 and deploy using Docker Compose
-          echo "SSH into EC2 and deploy using Docker Compose"
-          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_QA }} << 'EOF'
-            echo "Creating docker-compose.yml dynamically"
-
-            # Generate docker-compose.yml with proper formatting
-            cat <<EOL > ~/docker-compose.yml
-            version: '3.8'
-            services:
-              analysis-avatar-ms:
-                image: alexismendozaa/analysis-avatar-ms:latest
-                ports:
-                  - '5000:3029'
-                env_file:
-                  - ~/docker-compose.env
-              login-ms:
-                image: alexismendozaa/login-ms:latest
-                ports:
-                  - '5001:3001'
-                env_file:
-                  - ~/docker-compose.env
-              recovery-ms:
-                image: alexismendozaa/recovery-ms:latest
-                ports:
-                  - '5002:3002'
-                env_file:
-                  - ~/docker-compose.env
-              register-ms:
-                image: alexismendozaa/register-ms:latest
-                ports:
-                  - '5003:3000'
-                env_file:
-                  - ~/docker-compose.env
-              reset-ms:
-                image: alexismendozaa/reset-ms:latest
-                ports:
-                  - '5004:3003'
-                env_file:
-                  - ~/docker-compose.env
-            networks:
-              default:
-                driver: bridge
-            EOL
-
-            echo "docker-compose.yml created successfully"
-
-            # Check if the file exists
-            ls -l ~/docker-compose.yml
-
-            # Start the Docker Compose services
-            echo "Running docker-compose up -d"
-            sudo docker-compose -f ~/docker-compose.yml up -d
-
-            # Verify if the containers are up
-            echo "Checking running containers"
-            sudo docker ps
-
-            # Log Docker Compose output
-            echo "Getting Docker Compose logs"
-            sudo docker-compose -f ~/docker-compose.yml logs
-          EOF
-
-      # Step 11: Deploy to EC2 PROD (only if branch is 'main')
-      - name: Deploy to EC2 PROD
-        if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
-        run: |
-          echo "Deploying to PROD EC2 instance..."
-
-          # Create the .ssh directory if it doesn't exist
-          mkdir -p ~/.ssh
-
-          # Save the private SSH key for PROD to ec2_key and set permissions
-          echo "${{ secrets.SSH_KEY_PROD }}" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
-
-          # Add the EC2 host's fingerprint to known_hosts
-          echo "Adding EC2 host to known_hosts"
-          ssh-keyscan -H ${{ secrets.EC2_PROD }} >> ~/.ssh/known_hosts
-
-          # Create .env file with all the secrets dynamically
-          echo "Creating .env file dynamically"
-          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> ~/docker-compose.env
-          echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> ~/docker-compose.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> ~/docker-compose.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> ~/docker-compose.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> ~/docker-compose.env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> ~/docker-compose.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ~/docker-compose.env
-
-          # SSH into EC2 and deploy using Docker Compose
-          echo "SSH into EC2 and deploy using Docker Compose"
-          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PROD }} << 'EOF'
-            echo "Creating docker-compose.yml dynamically"
-
-            # Generate docker-compose.yml with proper formatting
-            cat <<EOL > ~/docker-compose.yml
-            version: '3.8'
-            services:
-              analysis-avatar-ms:
-                image: alexismendozaa/analysis-avatar-ms:latest
-                ports:
-                  - '5000:3029'
-                env_file:
-                  - ~/docker-compose.env
-              login-ms:
-                image: alexismendozaa/login-ms:latest
-                ports:
-                  - '5001:3001'
-                env_file:
-                  - ~/docker-compose.env
-              recovery-ms:
-                image: alexismendozaa/recovery-ms:latest
-                ports:
-                  - '5002:3002'
-                env_file:
-                  - ~/docker-compose.env
-              register-ms:
-                image: alexismendozaa/register-ms:latest
-                ports:
-                  - '5003:3000'
-                env_file:
-                  - ~/docker-compose.env
-              reset-ms:
-                image: alexismendozaa/reset-ms:latest
-                ports:
-                  - '5004:3003'
-                env_file:
-                  - ~/docker-compose.env
-            networks:
-              default:
-                driver: bridge
-            EOL
-
-            echo "docker-compose.yml created successfully"
-
-            # Check if the file exists
-            ls -l ~/docker-compose.yml
-
-            # Start the Docker Compose services
-            echo "Running docker-compose up -d"
-            sudo docker-compose -f ~/docker-compose.yml up -d
-
-            # Verify if the containers are up
-            echo "Checking running containers"
-            sudo docker ps
-
-            # Log Docker Compose output
-            echo "Getting Docker Compose logs"
-            sudo docker-compose -f ~/docker-compose.yml logs
-          EOF
+          # Ejecutar los contenedores con Docker Compose
+          docker-compose -f /home/ubuntu/docker-compose.yml up -d
