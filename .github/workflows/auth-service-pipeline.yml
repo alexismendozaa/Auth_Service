@@ -83,11 +83,15 @@ jobs:
           echo "$SSH_KEY_QA" | base64 -d > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # Desplegar en EC2
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_QA }} << 'EOF'
+          # Desplegar en EC2 usando Docker Compose
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_QA }} << 'EOF'
             cd /path/to/deployment/directory
-            docker pull alexismendozaa/auth-service:latest
-            docker-compose -f docker-compose.yml up -d
+            # Detener y eliminar cualquier contenedor existente
+            sudo docker-compose down || true
+            # Descargar la última imagen de Docker Hub
+            sudo docker-compose pull
+            # Levantar los servicios definidos en docker-compose.yml
+            sudo docker-compose up -d
           EOF
 
       # Step 11: Deploy to Production (only if branch is 'main' or a PR to 'main')
@@ -103,9 +107,13 @@ jobs:
           echo "$SSH_KEY_PROD" | base64 -d > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # Desplegar en EC2
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
+          # Desplegar en EC2 usando Docker Compose
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PROD }} << 'EOF'
             cd /path/to/deployment/directory
-            docker pull alexismendozaa/auth-service:latest
-            docker-compose -f docker-compose.yml up -d
+            # Detener y eliminar cualquier contenedor existente
+            sudo docker-compose down || true
+            # Descargar la última imagen de Docker Hub
+            sudo docker-compose pull
+            # Levantar los servicios definidos en docker-compose.yml
+            sudo docker-compose up -d
           EOF
