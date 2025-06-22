@@ -75,12 +75,12 @@ jobs:
         if: github.ref == 'refs/heads/test'
         run: |
           echo "Deploying to QA EC2 instance..."
-
+          
           # Crear el directorio .ssh si no existe
           mkdir -p ~/.ssh
 
-          # Guardar la clave privada en el archivo id_rsa y asegurar permisos
-          echo "$SSH_KEY_QA" > ~/.ssh/id_rsa
+          # Guardar la clave privada SSH de QA en el archivo id_rsa y asegurar permisos
+          echo "$SSH_KEY_QA" | base64 -d > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
           # Desplegar en EC2
@@ -99,8 +99,8 @@ jobs:
           # Crear el directorio .ssh si no existe
           mkdir -p ~/.ssh
 
-          # Guardar la clave privada en el archivo id_rsa y asegurar permisos
-          echo "$SSH_KEY_PROD" > ~/.ssh/id_rsa
+          # Guardar la clave privada SSH de PROD en el archivo id_rsa y asegurar permisos
+          echo "$SSH_KEY_PROD" | base64 -d > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
           # Desplegar en EC2
