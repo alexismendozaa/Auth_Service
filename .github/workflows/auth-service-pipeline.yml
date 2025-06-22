@@ -25,6 +25,7 @@ jobs:
       run: |
         echo "$SSH_KEY_QA" > private_key.pem
         chmod 600 private_key.pem
+        cat private_key.pem  # Verificar que la clave se haya creado correctamente
 
     # Configurar Docker para construir y subir las imágenes
     - name: Set up Docker Buildx
