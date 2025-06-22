@@ -1,28 +1,23 @@
+// tests/app.test.js para reset-ms
 const request = require('supertest');
-const app = require('../app');
+const app = require('../app'); // Suponiendo que app.js es tu servidor Express
 
-describe('POST /api/reset', () => {
-  it('should reset the password using a valid token', async () => {
+describe('POST /reset', () => {
+  it('should return 200 for valid reset request', async () => {
     const response = await request(app)
-      .post('/api/reset')
-      .send({
-        token: 'valid-reset-token',
-        newPassword: 'newPassword123'
-      });
-
+      .post('/reset')
+      .send({ email: 'valid-email@example.com' });
+    
     expect(response.status).toBe(200);
-    expect(response.body.message).toBe('Password successfully reset');
+    expect(response.body).toHaveProperty('message', 'Reset email sent');
   });
 
-  it('should return an error for an invalid token', async () => {
+  it('should return 400 for invalid email format', async () => {
     const response = await request(app)
-      .post('/api/reset')
-      .send({
-        token: 'invalid-reset-token',
-        newPassword: 'newPassword123'
-      });
-
+      .post('/reset')
+      .send({ email: 'invalid-email' });
+    
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Invalid token');
+    expect(response.body).toHaveProperty('error', 'Invalid email format');
   });
 });

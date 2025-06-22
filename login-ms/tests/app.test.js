@@ -1,26 +1,23 @@
+// tests/app.test.js para login-ms
 const request = require('supertest');
-const app = require('../app');
+const app = require('../app'); // Suponiendo que app.js es tu servidor Express
 
-describe('POST /api/login', () => {
-  it('should authenticate the user and return a token', async () => {
+describe('POST /login', () => {
+  it('should return 200 for valid login', async () => {
     const response = await request(app)
-      .post('/api/login')
-      .send({
-        email: 'afmendozaf@uce.edu.ec',
-        password: 'alexis123'
-      });
+      .post('/login')
+      .send({ username: 'user', password: 'valid-password' });
+    
     expect(response.status).toBe(200);
-    expect(response.body.token).toBeDefined();
+    expect(response.body).toHaveProperty('message', 'Login successful');
   });
 
-  it('should return an error for invalid credentials', async () => {
+  it('should return 400 for invalid login', async () => {
     const response = await request(app)
-      .post('/api/login')
-      .send({
-        email: 'wronguser@example.com',
-        password: 'wrongpassword'
-      });
+      .post('/login')
+      .send({ username: 'user', password: 'wrong-password' });
+    
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Invalid credentials');
+    expect(response.body).toHaveProperty('error', 'Invalid credentials');
   });
 });

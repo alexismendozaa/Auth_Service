@@ -1,29 +1,23 @@
+// tests/app.test.js para register-ms
 const request = require('supertest');
-const app = require('../app');  // Asegúrate de importar el archivo correcto
+const app = require('../app'); // Suponiendo que app.js es tu servidor Express
 
-describe('POST /api/auth/register', () => {
-  it('should register a new user and upload profile picture', async () => {
+describe('POST /register', () => {
+  it('should return 200 for successful registration', async () => {
     const response = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: 'newuser@example.com',
-        password: 'password123',
-        profileImage: 'fake-image-url' 
-      });
-    expect(response.status).toBe(201);
-    expect(response.body.email).toBe('newuser@example.com');
-    expect(response.body.profileImage).toBe('fake-image-url');
+      .post('/register')
+      .send({ username: 'newuser', password: 'newpassword' });
+    
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('message', 'Registration successful');
   });
 
-  it('should return an error if user already exists', async () => {
+  it('should return 400 for missing fields', async () => {
     const response = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: 'existinguser@example.com',
-        password: 'password123',
-        profileImage: 'fake-image-url'
-      });
+      .post('/register')
+      .send({ username: 'newuser' });  // Falta el campo de la contraseña
+    
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('User already exists');
+    expect(response.body).toHaveProperty('error', 'Password is required');
   });
 });
