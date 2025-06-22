@@ -9,33 +9,61 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-    # Paso 1: Checkout del código
+    # Step 1: Checkout the code
     - name: Check out code
       uses: actions/checkout@v2
 
-    # Paso 2: Loguearse en Docker Hub antes de construir las imágenes
+    # Step 2: Log in to Docker Hub before building images
     - name: Log in to Docker Hub
       run: |
         echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-    # Paso 3: Instalar Docker Compose
+    # Step 3: Install Docker Compose
     - name: Install Docker Compose
       run: |
         sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
         docker-compose --version
 
-    # Paso 4: Construir las imágenes con docker-compose
+    # Step 4: Install dependencies and run tests for each microservice
+    - name: Install dependencies and run tests for all microservices
+      run: |
+        # Install dependencies and test for login-ms
+        cd login-ms
+        npm install
+        npm test
+
+        # Install dependencies and test for register-ms
+        cd ../register-ms
+        npm install
+        npm test
+
+        # Install dependencies and test for reset-ms
+        cd ../reset-ms
+        npm install
+        npm test
+
+        # Install dependencies and test for recovery-ms
+        cd ../recovery-ms
+        npm install
+        npm test
+
+        # Install dependencies and test for analysis-avatar-ms
+        cd ../analysis-avatar-ms
+        npm install
+        npm test
+
+    # Step 5: Build Docker images using Docker Compose
     - name: Build Docker images using Docker Compose
       run: |
         docker-compose -f docker-compose.yml build
 
-    # Paso 5: Subir las imágenes a Docker Hub
+    # Step 6: Push Docker images to Docker Hub
     - name: Push Docker images to Docker Hub
       run: |
         docker-compose -f docker-compose.yml push
 
-    # Paso 6: Conectar a EC2 y detener y eliminar contenedores previos
+    # Step 7: Connect to EC2, stop and remove existing containers
     - name: Clean up existing containers on EC2
       uses: appleboy/ssh-action@v0.1.7
       with:
@@ -45,24 +73,24 @@ jobs:
         port: 22
         debug: true
         script: |
-          # Detener y eliminar contenedores existentes
+          # Stop and remove existing containers
           docker stop $(docker ps -aq) || true
           docker rm $(docker ps -aq) || true
           docker system prune -af || true
 
-    # Paso 7: Conectar a EC2 y ejecutar los nuevos contenedores desde Docker Hub
+    # Step 8: Connect to EC2 and deploy the new containers from Docker Hub
     - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
-        host: ${{ secrets.EC2_QA }}  # Usar la IP pública de EC2 (secreto EC2_QA)
-        username: ubuntu  # Usuario
-        key: ${{ secrets.SSH_KEY_QA }}  # Usar el secreto SSH_KEY_QA (clave privada)
+        host: ${{ secrets.EC2_QA }}  # Use the EC2 public IP (EC2_QA secret)
+        username: ubuntu  # User
+        key: ${{ secrets.SSH_KEY_QA }}  # Use SSH_KEY_QA secret (private key)
         port: 22
-        debug: true  # Habilitar depuración para obtener más detalles
+        debug: true  # Enable debugging for more details
         script: |
-          # Exportar las variables de entorno necesarias para cada contenedor
+          # Export environment variables for each container
           
-          # Variables comunes
+          # Common environment variables
           export DB_HOST=${{ secrets.DB_HOST }}
           export DB_USER=${{ secrets.DB_USER }}
           export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -77,7 +105,7 @@ jobs:
           export EMAIL_PASS=${{ secrets.EMAIL_PASS }}
           export APP_URL=${{ secrets.APP_URL }}
 
-          # Contenedor Analysis - con variables específicas para Analysis
+          # Run containers for each microservice
           docker run -d --name analysis-avatar-ms \
             -p 5029:3029 \
             -e DB_HOST=${{ secrets.DB_HOST }} \
@@ -92,7 +120,6 @@ jobs:
             -e SIGHTENGINE_API_USER=${{ secrets.SIGHTENGINE_API_USER }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/analysis-avatar-ms:latest
 
-          # Contenedor Login - con variables específicas para Login
           docker run -d --name login-ms \
             -p 5001:3001 \
             -e DB_HOST=${{ secrets.DB_HOST }} \
@@ -106,7 +133,6 @@ jobs:
             -e S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
 
-          # Contenedor Recovery - con variables específicas para Recovery
           docker run -d --name recovery-ms \
             -p 5002:3002 \
             -e DB_HOST=${{ secrets.DB_HOST }} \
@@ -118,7 +144,6 @@ jobs:
             -e APP_URL=${{ secrets.APP_URL }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
 
-          # Contenedor Register - con variables específicas para Register
           docker run -d --name register-ms \
             -p 5025:3025 \
             -e DB_HOST=${{ secrets.DB_HOST }} \
@@ -131,7 +156,6 @@ jobs:
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
 
-          # Contenedor Reset - con variables específicas para Reset
           docker run -d --name reset-ms \
             -p 5003:3003 \
             -e DB_HOST=${{ secrets.DB_HOST }} \
