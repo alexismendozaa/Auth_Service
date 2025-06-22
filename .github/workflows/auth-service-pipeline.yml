@@ -13,28 +13,29 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    # Paso 2: Instalar Docker Compose
+    # Paso 2: Loguearse en Docker Hub antes de construir las imágenes
+    - name: Log in to Docker Hub
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    # Paso 3: Instalar Docker Compose
     - name: Install Docker Compose
       run: |
         sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
         docker-compose --version
 
-    # Paso 3: Construir las imágenes con docker-compose
+    # Paso 4: Construir las imágenes con docker-compose
     - name: Build Docker images using Docker Compose
       run: |
         docker-compose -f docker-compose.yml build
 
-    # Paso 4: Subir las imágenes a Docker Hub
+    # Paso 5: Subir las imágenes a Docker Hub
     - name: Push Docker images to Docker Hub
       run: |
         docker-compose -f docker-compose.yml push
-      env:
-        DOCKER_CLI_EXPERIMENTAL: enabled
-        DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # Paso 5: Conectar a EC2 y ejecutar los contenedores directamente desde Docker Hub
+    # Paso 6: Conectar a EC2 y ejecutar los contenedores directamente desde Docker Hub
     - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
