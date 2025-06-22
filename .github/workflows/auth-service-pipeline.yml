@@ -144,6 +144,10 @@ jobs:
             # Verify if the containers are up
             echo "Checking running containers"
             sudo docker ps
+
+            # Log Docker Compose output
+            echo "Getting Docker Compose logs"
+            sudo docker-compose -f ~/docker-compose.yml logs
           EOF
 
       # Step 11: Deploy to EC2 PROD (only if branch is 'main')
@@ -207,4 +211,8 @@ jobs:
             # Verify if the containers are up
             echo "Checking running containers"
             sudo docker ps
+
+            # Log Docker Compose output
+            echo "Getting Docker Compose logs"
+            sudo docker-compose -f ~/docker-compose.yml logs
           EOF
