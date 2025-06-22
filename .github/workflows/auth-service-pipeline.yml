@@ -35,7 +35,22 @@ jobs:
       run: |
         docker-compose -f docker-compose.yml push
 
-    # Paso 6: Conectar a EC2 y ejecutar los contenedores directamente desde Docker Hub
+    # Paso 6: Conectar a EC2 y detener y eliminar contenedores previos
+    - name: Clean up existing containers on EC2
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_QA }}
+        username: ubuntu
+        key: ${{ secrets.SSH_KEY_QA }}
+        port: 22
+        debug: true
+        script: |
+          # Detener y eliminar contenedores existentes
+          docker stop $(docker ps -aq) || true
+          docker rm $(docker ps -aq) || true
+          docker system prune -af || true
+
+    # Paso 7: Conectar a EC2 y ejecutar los nuevos contenedores desde Docker Hub
     - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
