@@ -9,29 +9,29 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-    # Checkout del código
+    # Paso 1: Checkout del código
     - name: Check out code
       uses: actions/checkout@v2
 
-    # Instalar Docker Compose
+    # Paso 2: Instalar Docker Compose
     - name: Install Docker Compose
       run: |
         sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
         docker-compose --version
 
-    # Convertir el secreto SSH_KEY_QA a archivo .pem
+    # Paso 3: Convertir el secreto SSH_KEY_QA a archivo .pem
     - name: Create SSH private key
       run: |
         echo "$SSH_KEY_QA" > private_key.pem
         chmod 600 private_key.pem
         cat private_key.pem  # Verificar que la clave se haya creado correctamente
 
-    # Configurar Docker para construir y subir las imágenes
+    # Paso 4: Configurar Docker para construir y subir las imágenes
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    # Cache Docker layers
+    # Paso 5: Cache Docker layers
     - name: Cache Docker layers
       uses: actions/cache@v3
       with:
@@ -40,45 +40,45 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-
 
-    # Login a DockerHub usando los secretos
+    # Paso 6: Login a DockerHub usando los secretos
     - name: Log in to DockerHub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # Construir y empujar las imágenes a DockerHub usando Docker Compose
+    # Paso 7: Construir y empujar las imágenes a DockerHub usando Docker Compose
     - name: Build and push images using Docker Compose
       run: |
         docker-compose -f docker-compose.yml build
         docker-compose -f docker-compose.yml push
 
-    # Copiar docker-compose.yml a la instancia EC2 y reemplazar cualquier archivo existente
+    # Paso 8: Copiar docker-compose.yml a la instancia EC2 y reemplazar cualquier archivo existente
     - name: Copy docker-compose.yml to EC2
       uses: appleboy/scp-action@v0.1.2
       with:
-        host: ${{ secrets.EC2_QA }}
+        host: ${{ secrets.EC2_QA }}  # Usar el secreto EC2_QA (dirección IP pública de EC2)
         username: ubuntu
         key: ./private_key.pem  # Usar la clave privada convertida
         port: 22
         source: "./docker-compose.yml"
         target: "/home/ubuntu/docker-compose.yml"
 
-    # Ejecutar los contenedores en EC2 usando SSH
+    # Paso 9: Ejecutar los contenedores en EC2 usando SSH
     - name: SSH to EC2 and run Docker Compose
       uses: appleboy/ssh-action@v0.1.7
       with:
-        host: ${{ secrets.EC2_QA }}
+        host: ${{ secrets.EC2_QA }}  # Usar el secreto EC2_QA (dirección IP pública de EC2)
         username: ubuntu
         key: ./private_key.pem  # Usar la clave privada convertida
         port: 22
-        debug: true
+        debug: true  # Habilitar depuración para ver más detalles
         script: |
           # Crear el directorio ~/.ssh si no existe
           mkdir -p ~/.ssh
           
           # Añadir la clave pública del host de EC2 al archivo known_hosts
-          ssh-keyscan -H ${{ secrets.LOGIN_EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
 
           # Exportar las variables de entorno necesarias
           export DB_HOST=${{ secrets.DB_HOST }}
