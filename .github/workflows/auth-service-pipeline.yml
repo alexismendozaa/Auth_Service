@@ -106,7 +106,8 @@ jobs:
             echo "Creating docker-compose.yml dynamically"
 
             # Generate docker-compose.yml
-            echo "version: '3.8'
+            cat <<EOL > ~/docker-compose.yml
+            version: '3.8'
             services:
               analysis-avatar-ms:
                 image: alexismendozaa/analysis-avatar-ms:latest
@@ -130,7 +131,8 @@ jobs:
                   - '5004:3003'
             networks:
               default:
-                driver: bridge" > ~/docker-compose.yml
+                driver: bridge
+            EOL
 
             echo "docker-compose.yml created successfully"
 
@@ -173,7 +175,8 @@ jobs:
             echo "Creating docker-compose.yml dynamically"
 
             # Generate docker-compose.yml
-            echo "version: '3.8'
+            cat <<EOL > ~/docker-compose.yml
+            version: '3.8'
             services:
               analysis-avatar-ms:
                 image: alexismendozaa/analysis-avatar-ms:latest
@@ -197,7 +200,8 @@ jobs:
                   - '5004:3003'
             networks:
               default:
-                driver: bridge" > ~/docker-compose.yml
+                driver: bridge
+            EOL
 
             echo "docker-compose.yml created successfully"
 
