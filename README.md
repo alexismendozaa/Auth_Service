@@ -1,7 +1,7 @@
 
-# 🛡️ LOGIN Microservice System
+# 🛡️ Auth Service System
 
-This repository contains a modular **LOGIN system** built with Node.js using a microservices architecture. It includes two independent services:
+This repository contains a modular **Auth system** built with Node.js using a microservices architecture. It includes two independent services:
 
 - 🔐 **Login Microservice** – Handles user authentication.
 - 📝 **Register Microservice** – Handles new user registration.
