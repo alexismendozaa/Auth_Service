@@ -1,26 +1,24 @@
 const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
-const dotenv = require('dotenv');
 const multer = require('multer');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const path = require('path');
 
-dotenv.config();
 const app = express();
 
 // Middleware to parse JSON in the request body
-app.use(express.json()); 
+app.use(express.json());
 
 // Rutas de autenticación
-const authRoutes = require('./routes/authRoutes');  
-app.use('/api/auth', authRoutes);  
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
 
 // CORS configuration
 app.use(cors({
-  origin: '*',  // Permite todos los orígenes
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -45,7 +43,7 @@ const swaggerOptions = {
     ],
     servers: [
       {
-        url: 'http://localhost:5000',
+        url: 'http://localhost:3025',
         description: 'API documentation',
       },
     ],
@@ -71,15 +69,15 @@ const s3Client = new S3Client({
 // Function to upload the image to S3
 async function uploadToS3(fileBuffer, filename) {
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME, // Bucket name
-    Key: `profiles/${filename}`, // Path of the file within the bucket
-    Body: fileBuffer, // The contents of the file
-    ACL: 'public-read', 
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: `profiles/${filename}`,
+    Body: fileBuffer,
+    ACL: 'public-read',
   };
 
   try {
     const command = new PutObjectCommand(params);
-    const data = await s3Client.send(command); // Upload the image to S3
+    const data = await s3Client.send(command);
     console.log('Imagen subida a S3:', data);
     return `${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/profiles/${filename}`;
   } catch (err) {
@@ -100,7 +98,6 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   try {
     const imageUrl = await uploadToS3(file.buffer, file.originalname);
 
-    // Update the image URL in the database (updates the User model)
     await sequelize.models.User.update(
       { profileImage: imageUrl },
       { where: { id: userId } }
@@ -112,8 +109,8 @@ app.post('/api/users/:userId/profile-picture', upload.single('file'), async (req
   }
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000; // <--- Aquí se define PORT antes de usarlo
+// Start the server DIRECTAMENTE en el puerto 3025, sin .env ni process.env.PORT
+const PORT = 3025;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });

@@ -33,7 +33,7 @@ services:
       context: ./register-ms
     image: alexismendozaa/register-ms:latest
     ports:
-      - "5000:3000"
+      - "5025:3025"
     networks:
       - auth_network
 
