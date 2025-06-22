@@ -14,37 +14,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
+    
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Configure Docker Buildx
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 3: Log in to Docker Hub
+      
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 4: Run functional tests tied to CI
-      - name: Run functional tests
+      
+      - name: Build and run tests in Docker containers
         run: |
-          cd analysis-avatar-ms && npm install && npm test
-          cd ../login-ms && npm install && npm test
-          cd ../recovery-ms && npm install && npm test
-          cd ../register-ms && npm install && npm test
-          cd ../reset-ms && npm install && npm test
+          docker-compose -f docker-compose.yml build  # Construir las imágenes
+          docker-compose -f docker-compose.yml run --rm register-ms npm test 
+          docker-compose -f docker-compose.yml run --rm login-ms npm test  
+          docker-compose -f docker-compose.yml run --rm recovery-ms npm test  
+          docker-compose -f docker-compose.yml run --rm analysis-avatar-ms npm test 
+          docker-compose -f docker-compose.yml run --rm reset-ms npm test  
 
-      # Step 5: Build and upload the image to Docker Hub
+
       - name: Build and push Docker images
         run: |
           docker-compose -f docker-compose.yml build
           docker-compose -f docker-compose.yml push
 
-      # Step 6: Deploy to QA (if the branch is `test`)
+
       - name: Deploy to EC2 QA
         if: github.ref == 'refs/heads/test'
         run: |
@@ -55,7 +56,7 @@ jobs:
             docker-compose -f docker-compose.yml up -d
           EOF
 
-      # Step 7: Deploy to Production (if the branch is `main` or a PR to `main`)
+     
       - name: Deploy to EC2 PROD
         if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
         run: |
