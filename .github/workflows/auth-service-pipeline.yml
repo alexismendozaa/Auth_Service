@@ -1,4 +1,4 @@
-name: Docker Build and Push
+name: Docker Build and Deploy
 
 on:
   push:
@@ -20,66 +20,26 @@ jobs:
         sudo chmod +x /usr/local/bin/docker-compose
         docker-compose --version
 
-    # Paso 3: Convertir el secreto SSH_KEY_QA a archivo .pem
-    - name: Create SSH private key
-      run: |
-        echo "${{ secrets.SSH_KEY_QA }}" > private_key.pem  # Accedemos al secreto correctamente
-        chmod 600 private_key.pem
-        cat private_key.pem  # Verificar que la clave se haya creado correctamente
-
-    # Paso 4: Configurar Docker para construir y subir las imágenes
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    # Paso 5: Cache Docker layers
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-
-    # Paso 6: Login a DockerHub usando los secretos
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    # Paso 7: Construir y empujar las imágenes a DockerHub usando Docker Compose
-    - name: Build and push images using Docker Compose
+    # Paso 3: Construir las imágenes con docker-compose
+    - name: Build Docker images using Docker Compose
       run: |
         docker-compose -f docker-compose.yml build
+
+    # Paso 4: Subir las imágenes a Docker Hub
+    - name: Push Docker images to Docker Hub
+      run: |
         docker-compose -f docker-compose.yml push
 
-    # Paso 8: Copiar docker-compose.yml a la instancia EC2 y reemplazar cualquier archivo existente
-    - name: Copy docker-compose.yml to EC2
-      uses: appleboy/scp-action@v0.1.2
-      with:
-        host: ${{ secrets.EC2_QA }}  # Usar el secreto EC2_QA (dirección IP pública de EC2)
-        username: ubuntu
-        key: ./private_key.pem  # Usar la clave privada convertida
-        port: 22
-        source: "./docker-compose.yml"
-        target: "/home/ubuntu/docker-compose.yml"
-
-    # Paso 9: Ejecutar los contenedores en EC2 usando SSH
-    - name: SSH to EC2 and run Docker Compose
+    # Paso 5: Conectar a EC2 y ejecutar los contenedores directamente desde Docker Hub
+    - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
-        host: ${{ secrets.EC2_QA }}  # Usar el secreto EC2_QA (dirección IP pública de EC2)
-        username: ubuntu
-        key: ./private_key.pem  # Usar la clave privada convertida
+        host: ${{ secrets.EC2_QA }}  # Usar la IP pública de EC2 (secreto EC2_QA)
+        username: ubuntu  # Usuario
+        key: ${{ secrets.SSH_KEY_QA }}  # Usar el secreto SSH_KEY_QA (clave privada)
         port: 22
-        debug: true  # Habilitar depuración para ver más detalles
+        debug: true  # Habilitar depuración para obtener más detalles
         script: |
-          # Crear el directorio ~/.ssh si no existe
-          mkdir -p ~/.ssh
-          
-          # Añadir la clave pública del host de EC2 al archivo known_hosts
-          ssh-keyscan -H ${{ secrets.EC2_QA }} >> ~/.ssh/known_hosts
-
           # Exportar las variables de entorno necesarias
           export DB_HOST=${{ secrets.DB_HOST }}
           export DB_NAME=${{ secrets.DB_NAME }}
@@ -91,12 +51,50 @@ jobs:
           export SIGHTENGINE_API_KEY=${{ secrets.SIGHTENGINE_API_KEY }}
           export SIGHTENGINE_API_USER=${{ secrets.SIGHTENGINE_API_USER }}
 
-          # Descargar las imágenes de Docker desde DockerHub
-          docker pull alexismendozaa/analysis-avatar-ms:latest
-          docker pull alexismendozaa/login-ms:latest
-          docker pull alexismendozaa/recovery-ms:latest
-          docker pull alexismendozaa/register-ms:latest
-          docker pull alexismendozaa/reset-ms:latest
-          
-          # Ejecutar los contenedores con Docker Compose
-          docker-compose -f /home/ubuntu/docker-compose.yml up -d
+          # Descargar las imágenes de Docker desde Docker Hub
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/analysis-avatar-ms:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/reset-ms:latest
+
+          # Ejecutar los contenedores con las imágenes descargadas
+          docker run -d --name analysis-avatar-ms \
+            -p 5029:3029 \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/analysis-avatar-ms:latest
+
+          docker run -d --name login-ms \
+            -p 5001:3001 \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/login-ms:latest
+
+          docker run -d --name recovery-ms \
+            -p 5002:3002 \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/recovery-ms:latest
+
+          docker run -d --name register-ms \
+            -p 5000:3000 \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/register-ms:latest
+
+          docker run -d --name reset-ms \
+            -p 5003:3003 \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/reset-ms:latest
