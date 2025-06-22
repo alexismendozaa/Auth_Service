@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-describe('Verificación de app.js en microservicio', () => {
-  it('Debería existir el archivo app.js', () => {
+describe('Prueba de funcionalidad en microservicio', () => {
+  it('Comprobando estado /analysys/avatar', () => {
     const filePath = path.join(__dirname, '../app.js');
     expect(fs.existsSync(filePath)).toBe(true);
   });
