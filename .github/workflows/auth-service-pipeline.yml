@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - test
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build_and_deploy:
@@ -63,13 +67,13 @@ jobs:
       run: |
         docker-compose -f docker-compose.yml push
 
-    # Step 7: Connect to EC2, stop and remove existing containers
+    # Step 7: Clean up existing containers on EC2
     - name: Clean up existing containers on EC2
       uses: appleboy/ssh-action@v0.1.7
       with:
-        host: ${{ secrets.EC2_QA }}
+        host: ${{ github.ref_name == 'main' && secrets.EC2_PROD || secrets.EC2_QA }}
         username: ubuntu
-        key: ${{ secrets.SSH_KEY_QA }}
+        key: ${{ github.ref_name == 'main' && secrets.SSH_KEY_PROD || secrets.SSH_KEY_QA }}
         port: 22
         debug: true
         script: |
@@ -78,18 +82,18 @@ jobs:
           docker rm $(docker ps -aq) || true
           docker system prune -af || true
 
-    # Step 8: Connect to EC2 and deploy the new containers from Docker Hub
+    # Step 8: Deploy to EC2 via SSH
     - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
-        host: ${{ secrets.EC2_QA }}  # Use the EC2 public IP (EC2_QA secret)
-        username: ubuntu  # User
-        key: ${{ secrets.SSH_KEY_QA }}  # Use SSH_KEY_QA secret (private key)
+        host: ${{ github.ref_name == 'main' && secrets.EC2_PROD || secrets.EC2_QA }}
+        username: ubuntu
+        key: ${{ github.ref_name == 'main' && secrets.SSH_KEY_PROD || secrets.SSH_KEY_QA }}
         port: 22
-        debug: true  # Enable debugging for more details
+        debug: true
         script: |
           # Export environment variables for each container
-          
+
           # Common environment variables
           export DB_HOST=${{ secrets.DB_HOST }}
           export DB_USER=${{ secrets.DB_USER }}
