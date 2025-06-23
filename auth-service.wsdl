@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<definitions xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://www.examples.com/wsdl/AuthService" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <message name="LoginRequest">
+    <part name="username" type="xsd:string"/>
+    <part name="password" type="xsd:string"/>
+  </message>
+  <message name="LoginResponse">
+    <part name="status" type="xsd:string"/>
+    <part name="message" type="xsd:string"/>
+  </message>
+  
+  <message name="RegisterRequest">
+    <part name="username" type="xsd:string"/>
+    <part name="email" type="xsd:string"/>
+    <part name="password" type="xsd:string"/>
+  </message>
+  <message name="RegisterResponse">
+    <part name="status" type="xsd:string"/>
+    <part name="message" type="xsd:string"/>
+  </message>
+  
+  <portType name="AuthPort">
+    <operation name="Login">
+      <input message="tns:LoginRequest"/>
+      <output message="tns:LoginResponse"/>
+    </operation>
+    <operation name="Register">
+      <input message="tns:RegisterRequest"/>
+      <output message="tns:RegisterResponse"/>
+    </operation>
+  </portType>
+
+  <binding name="AuthBinding" type="tns:AuthPort">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="Login">
+      <soap:operation soapAction="login"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+  </binding>
+  
+  <service name="AuthService">
+    <port name="AuthPort" binding="tns:AuthBinding">
+      <soap:address location="http://localhost:8000/auth-service"/>
+    </port>
+  </service>
+</definitions>
