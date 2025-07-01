@@ -55,10 +55,9 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      # Static syntax check (replace npm test)
       - name: Run static syntax check
         if: steps.changes.outputs.changed == 'true'
-        run: bash ${{ matrix.service }}/check-static.sh
+        run: bash ${{ matrix.service }}/tests/check-static.sh
 
   # 2. BUILD
   build:
