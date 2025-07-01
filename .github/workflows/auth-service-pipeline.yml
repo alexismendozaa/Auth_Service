@@ -212,83 +212,82 @@ jobs:
           script: |
             docker rm -f ${{ matrix.service }} || true
 
-            # Variables comunes
-            export DB_HOST='${{ secrets.DB_HOST }}'
-            export DB_USER='${{ secrets.DB_USER }}'
-            export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
-            export DB_NAME='${{ secrets.DB_NAME }}'
-            export JWT_SECRET='${{ secrets.JWT_SECRET }}'
-            export JWT_EXPIRATION='${{ secrets.JWT_EXPIRATION }}'
-            export S3_BUCKET_NAME='${{ secrets.S3_BUCKET_NAME }}'
-            export AWS_REGION='${{ secrets.AWS_REGION }}'
-            export SIGHTENGINE_API_KEY='${{ secrets.SIGHTENGINE_API_KEY }}'
-            export SIGHTENGINE_API_USER='${{ secrets.SIGHTENGINE_API_USER }}'
-            export EMAIL_USER='${{ secrets.EMAIL_USER }}'
-            export EMAIL_PASS='${{ secrets.EMAIL_PASS }}'
-            export APP_URL='${{ secrets.APP_URL }}'
+            # Variables comunes, SIEMPRE entre comillas dobles
+            export DB_HOST="${{ secrets.DB_HOST }}"
+            export DB_USER="${{ secrets.DB_USER }}"
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export DB_NAME="${{ secrets.DB_NAME }}"
+            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+            export JWT_EXPIRATION="${{ secrets.JWT_EXPIRATION }}"
+            export S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
+            export AWS_REGION="${{ secrets.AWS_REGION }}"
+            export SIGHTENGINE_API_KEY="${{ secrets.SIGHTENGINE_API_KEY }}"
+            export SIGHTENGINE_API_USER="${{ secrets.SIGHTENGINE_API_USER }}"
+            export EMAIL_USER="${{ secrets.EMAIL_USER }}"
+            export EMAIL_PASS="${{ secrets.EMAIL_PASS }}"
+            export APP_URL="${{ secrets.APP_URL }}"
 
-            # Ejecutar microservicio según corresponda
             if [ "${{ matrix.service }}" = "analysis-avatar-ms" ]; then
               docker run -d --name analysis-avatar-ms \
                 -p 5029:3029 \
-                -e DB_HOST=$DB_HOST \
-                -e DB_USER=$DB_USER \
-                -e DB_PASSWORD=$DB_PASSWORD \
-                -e DB_NAME=$DB_NAME \
-                -e JWT_SECRET=$JWT_SECRET \
-                -e JWT_EXPIRATION=$JWT_EXPIRATION \
-                -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
-                -e AWS_REGION=$AWS_REGION \
-                -e SIGHTENGINE_API_KEY=$SIGHTENGINE_API_KEY \
-                -e SIGHTENGINE_API_USER=$SIGHTENGINE_API_USER \
+                -e DB_HOST="$DB_HOST" \
+                -e DB_USER="$DB_USER" \
+                -e DB_PASSWORD="$DB_PASSWORD" \
+                -e DB_NAME="$DB_NAME" \
+                -e JWT_SECRET="$JWT_SECRET" \
+                -e JWT_EXPIRATION="$JWT_EXPIRATION" \
+                -e S3_BUCKET_NAME="$S3_BUCKET_NAME" \
+                -e AWS_REGION="$AWS_REGION" \
+                -e SIGHTENGINE_API_KEY="$SIGHTENGINE_API_KEY" \
+                -e SIGHTENGINE_API_USER="$SIGHTENGINE_API_USER" \
                 alexismendozaa/analysis-avatar-ms:latest
 
             elif [ "${{ matrix.service }}" = "login-ms" ]; then
               docker run -d --name login-ms \
                 -p 5001:3001 \
-                -e DB_HOST=$DB_HOST \
-                -e DB_USER=$DB_USER \
-                -e DB_PASSWORD=$DB_PASSWORD \
-                -e DB_NAME=$DB_NAME \
-                -e JWT_SECRET=$JWT_SECRET \
-                -e JWT_EXPIRATION=$JWT_EXPIRATION \
-                -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
-                -e AWS_REGION=$AWS_REGION \
+                -e DB_HOST="$DB_HOST" \
+                -e DB_USER="$DB_USER" \
+                -e DB_PASSWORD="$DB_PASSWORD" \
+                -e DB_NAME="$DB_NAME" \
+                -e JWT_SECRET="$JWT_SECRET" \
+                -e JWT_EXPIRATION="$JWT_EXPIRATION" \
+                -e S3_BUCKET_NAME="$S3_BUCKET_NAME" \
+                -e AWS_REGION="$AWS_REGION" \
                 alexismendozaa/login-ms:latest
 
             elif [ "${{ matrix.service }}" = "recovery-ms" ]; then
               docker run -d --name recovery-ms \
                 -p 5002:3002 \
-                -e DB_HOST=$DB_HOST \
-                -e DB_USER=$DB_USER \
-                -e DB_PASSWORD=$DB_PASSWORD \
-                -e DB_NAME=$DB_NAME \
-                -e EMAIL_USER=$EMAIL_USER \
-                -e EMAIL_PASS=$EMAIL_PASS \
-                -e APP_URL=$APP_URL \
+                -e DB_HOST="$DB_HOST" \
+                -e DB_USER="$DB_USER" \
+                -e DB_PASSWORD="$DB_PASSWORD" \
+                -e DB_NAME="$DB_NAME" \
+                -e EMAIL_USER="$EMAIL_USER" \
+                -e EMAIL_PASS="$EMAIL_PASS" \
+                -e APP_URL="$APP_URL" \
                 alexismendozaa/recovery-ms:latest
 
             elif [ "${{ matrix.service }}" = "register-ms" ]; then
               docker run -d --name register-ms \
                 -p 5025:3025 \
-                -e DB_HOST=$DB_HOST \
-                -e DB_USER=$DB_USER \
-                -e DB_PASSWORD=$DB_PASSWORD \
-                -e DB_NAME=$DB_NAME \
-                -e JWT_SECRET=$JWT_SECRET \
-                -e JWT_EXPIRATION=$JWT_EXPIRATION \
-                -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
-                -e AWS_REGION=$AWS_REGION \
+                -e DB_HOST="$DB_HOST" \
+                -e DB_USER="$DB_USER" \
+                -e DB_PASSWORD="$DB_PASSWORD" \
+                -e DB_NAME="$DB_NAME" \
+                -e JWT_SECRET="$JWT_SECRET" \
+                -e JWT_EXPIRATION="$JWT_EXPIRATION" \
+                -e S3_BUCKET_NAME="$S3_BUCKET_NAME" \
+                -e AWS_REGION="$AWS_REGION" \
                 alexismendozaa/register-ms:latest
 
             elif [ "${{ matrix.service }}" = "reset-ms" ]; then
               docker run -d --name reset-ms \
                 -p 5003:3003 \
-                -e DB_HOST=$DB_HOST \
-                -e DB_USER=$DB_USER \
-                -e DB_PASSWORD=$DB_PASSWORD \
-                -e DB_NAME=$DB_NAME \
-                -e EMAIL_USER=$EMAIL_USER \
-                -e EMAIL_PASS=$EMAIL_PASS \
+                -e DB_HOST="$DB_HOST" \
+                -e DB_USER="$DB_USER" \
+                -e DB_PASSWORD="$DB_PASSWORD" \
+                -e DB_NAME="$DB_NAME" \
+                -e EMAIL_USER="$EMAIL_USER" \
+                -e EMAIL_PASS="$EMAIL_PASS" \
                 alexismendozaa/reset-ms:latest
             fi
