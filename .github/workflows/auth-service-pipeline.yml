@@ -4,18 +4,18 @@ on:
   push:
     branches: [main, test]
     paths:
-      - 'analysis-avatar-ms/**'
       - 'login-ms/**'
-      - 'recovery-ms/**'
       - 'register-ms/**'
+      - 'recovery-ms/**'
+      - 'analysis-avatar-ms/**'
       - 'reset-ms/**'
   pull_request:
     branches: [main]
     paths:
-      - 'analysis-avatar-ms/**'
       - 'login-ms/**'
-      - 'recovery-ms/**'
       - 'register-ms/**'
+      - 'recovery-ms/**'
+      - 'analysis-avatar-ms/**'
       - 'reset-ms/**'
 
 env:
@@ -23,62 +23,196 @@ env:
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
-  build_and_deploy:
+  ### 1. TESTS ###
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         service:
-          - analysis-avatar-ms
           - login-ms
-          - recovery-ms
           - register-ms
+          - recovery-ms
+          - analysis-avatar-ms
           - reset-ms
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
+      - name: Detect changes for service
+        id: changes
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          git fetch --prune --unshallow || git fetch --all
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin ${{ github.base_ref }}
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
+          else
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
+          fi
+          if [[ -n "$CHANGED" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Static syntax check for service
+      - name: Run static check
+        if: steps.changes.outputs.changed == 'true'
+        run: bash ${{ matrix.service }}/tests/check-static.sh
+
+  ### 2. BUILD ###
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      matrix:
+        service:
+          - login-ms
+          - register-ms
+          - recovery-ms
+          - analysis-avatar-ms
+          - reset-ms
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changes for service
+        id: changes
         run: |
-          bash ${{ matrix.service }}/tests/check-static.sh
+          git fetch --prune --unshallow || git fetch --all
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin ${{ github.base_ref }}
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
+          else
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
+          fi
+          if [[ -n "$CHANGED" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build Docker image
+        if: steps.changes.outputs.changed == 'true'
         run: |
-          docker build -t ${{ env.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest ./${{ matrix.service }}
+          docker build -t alexismendozaa/${{ matrix.service }}:latest ./${{ matrix.service }}
+
+      - name: Save Docker image artifact
+        if: steps.changes.outputs.changed == 'true'
+        run: docker save alexismendozaa/${{ matrix.service }}:latest -o ${{ matrix.service }}.tar
+
+      - uses: actions/upload-artifact@v4
+        if: steps.changes.outputs.changed == 'true'
+        with:
+          name: ${{ matrix.service }}-image
+          path: ${{ matrix.service }}.tar
+
+  ### 3. PUSH ###
+  push:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        service:
+          - login-ms
+          - register-ms
+          - recovery-ms
+          - analysis-avatar-ms
+          - reset-ms
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changes for service
+        id: changes
+        run: |
+          git fetch --prune --unshallow || git fetch --all
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin ${{ github.base_ref }}
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
+          else
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
+          fi
+          if [[ -n "$CHANGED" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.changes.outputs.changed == 'true'
+        with:
+          name: ${{ matrix.service }}-image
+
+      - name: Load Docker image
+        if: steps.changes.outputs.changed == 'true'
+        run: docker load -i ${{ matrix.service }}.tar
+
+      - name: Login to Docker Hub
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
 
       - name: Push Docker image
-        run: |
-          docker push ${{ env.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
+        if: steps.changes.outputs.changed == 'true'
+        run: docker push alexismendozaa/${{ matrix.service }}:latest
 
-      # Limpia el contenedor antiguo antes de deploy
-      - name: Clean up existing container on EC2
+  ### 4. DEPLOY ###
+  deploy:
+    runs-on: ubuntu-latest
+    needs: push
+    strategy:
+      matrix:
+        service:
+          - login-ms
+          - register-ms
+          - recovery-ms
+          - analysis-avatar-ms
+          - reset-ms
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changes for service
+        id: changes
+        run: |
+          git fetch --prune --unshallow || git fetch --all
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin ${{ github.base_ref }}
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
+          else
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
+          fi
+          if [[ -n "$CHANGED" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Seleccionar ambiente y SSH key
+        if: steps.changes.outputs.changed == 'true'
+        id: select-env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/test" ]]; then
+            echo "host=${{ secrets.EC2_QA }}" >> $GITHUB_OUTPUT
+            echo "key<<EOF" >> $GITHUB_OUTPUT
+            echo "${{ secrets.SSH_KEY_QA }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "host=${{ secrets.EC2_PROD }}" >> $GITHUB_OUTPUT
+            echo "key<<EOF" >> $GITHUB_OUTPUT
+            echo "${{ secrets.SSH_KEY_PROD }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy updated microservice to EC2 via SSH
+        if: steps.changes.outputs.changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: ${{ github.ref_name == 'main' && secrets.EC2_PROD || secrets.EC2_QA }}
+          host: ${{ steps.select-env.outputs.host }}
           username: ubuntu
-          key: ${{ github.ref_name == 'main' && secrets.SSH_KEY_PROD || secrets.SSH_KEY_QA }}
+          key: ${{ steps.select-env.outputs.key }}
           port: 22
-          debug: true
           script: |
             docker rm -f ${{ matrix.service }} || true
-            docker image rm ${{ env.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest || true
 
-      # Despliega el microservicio actualizado
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ github.ref_name == 'main' && secrets.EC2_PROD || secrets.EC2_QA }}
-          username: ubuntu
-          key: ${{ github.ref_name == 'main' && secrets.SSH_KEY_PROD || secrets.SSH_KEY_QA }}
-          port: 22
-          debug: true
-          script: |
-            # Export environment variables comunes
+            # Variables comunes
             export DB_HOST='${{ secrets.DB_HOST }}'
             export DB_USER='${{ secrets.DB_USER }}'
             export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
@@ -93,6 +227,7 @@ jobs:
             export EMAIL_PASS='${{ secrets.EMAIL_PASS }}'
             export APP_URL='${{ secrets.APP_URL }}'
 
+            # Ejecutar microservicio según corresponda
             if [ "${{ matrix.service }}" = "analysis-avatar-ms" ]; then
               docker run -d --name analysis-avatar-ms \
                 -p 5029:3029 \
@@ -106,7 +241,7 @@ jobs:
                 -e AWS_REGION=$AWS_REGION \
                 -e SIGHTENGINE_API_KEY=$SIGHTENGINE_API_KEY \
                 -e SIGHTENGINE_API_USER=$SIGHTENGINE_API_USER \
-                ${{ env.DOCKERHUB_USERNAME }}/analysis-avatar-ms:latest
+                alexismendozaa/analysis-avatar-ms:latest
 
             elif [ "${{ matrix.service }}" = "login-ms" ]; then
               docker run -d --name login-ms \
@@ -118,7 +253,8 @@ jobs:
                 -e JWT_SECRET=$JWT_SECRET \
                 -e JWT_EXPIRATION=$JWT_EXPIRATION \
                 -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
-                ${{ env.DOCKERHUB_USERNAME }}/login-ms:latest
+                -e AWS_REGION=$AWS_REGION \
+                alexismendozaa/login-ms:latest
 
             elif [ "${{ matrix.service }}" = "recovery-ms" ]; then
               docker run -d --name recovery-ms \
@@ -130,7 +266,7 @@ jobs:
                 -e EMAIL_USER=$EMAIL_USER \
                 -e EMAIL_PASS=$EMAIL_PASS \
                 -e APP_URL=$APP_URL \
-                ${{ env.DOCKERHUB_USERNAME }}/recovery-ms:latest
+                alexismendozaa/recovery-ms:latest
 
             elif [ "${{ matrix.service }}" = "register-ms" ]; then
               docker run -d --name register-ms \
@@ -143,7 +279,7 @@ jobs:
                 -e JWT_EXPIRATION=$JWT_EXPIRATION \
                 -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
                 -e AWS_REGION=$AWS_REGION \
-                ${{ env.DOCKERHUB_USERNAME }}/register-ms:latest
+                alexismendozaa/register-ms:latest
 
             elif [ "${{ matrix.service }}" = "reset-ms" ]; then
               docker run -d --name reset-ms \
@@ -154,5 +290,5 @@ jobs:
                 -e DB_NAME=$DB_NAME \
                 -e EMAIL_USER=$EMAIL_USER \
                 -e EMAIL_PASS=$EMAIL_PASS \
-                ${{ env.DOCKERHUB_USERNAME }}/reset-ms:latest
+                alexismendozaa/reset-ms:latest
             fi
