@@ -27,7 +27,6 @@ COPY --from=build /app/config ./config
 COPY --from=build /app/controllers ./controllers
 COPY --from=build /app/models ./models
 COPY --from=build /app/routes ./routes
-COPY --from=build /app/utils ./utils
 
 RUN npm ci --omit=dev
 
