@@ -8,7 +8,7 @@ on:
       - 'login-ms/**'
       - 'recovery-ms/**'
       - 'register-ms/**'
-      # Agrega 'reset-ms/**' si después lo agregas
+      - 'reset-ms/**'
   pull_request:
     branches: [main]
     paths:
@@ -16,13 +16,14 @@ on:
       - 'login-ms/**'
       - 'recovery-ms/**'
       - 'register-ms/**'
+      - 'reset-ms/**'
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
-  #### 1. TESTS ####
+  # 1. TESTS
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -32,11 +33,13 @@ jobs:
           - login-ms
           - recovery-ms
           - register-ms
+          - reset-ms
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Detect if this service changed in the commit/PR
       - name: Detect changes for service
         id: changes
         run: |
@@ -60,7 +63,7 @@ jobs:
           npm ci
           npm test
 
-  #### 2. BUILD ####
+  # 2. BUILD
   build:
     runs-on: ubuntu-latest
     needs: test
@@ -71,6 +74,7 @@ jobs:
           - login-ms
           - recovery-ms
           - register-ms
+          - reset-ms
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,7 +111,7 @@ jobs:
           name: ${{ matrix.service }}-image
           path: ${{ matrix.service }}.tar
 
-  #### 3. PUSH ####
+  # 3. PUSH
   push:
     runs-on: ubuntu-latest
     needs: build
@@ -118,6 +122,7 @@ jobs:
           - login-ms
           - recovery-ms
           - register-ms
+          - reset-ms
     steps:
       - uses: actions/checkout@v4
         with:
@@ -159,7 +164,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         run: docker push alexismendozaa/${{ matrix.service }}:latest
 
-  #### 4. DEPLOY ####
+  # 4. DEPLOY
   deploy:
     runs-on: ubuntu-latest
     needs: push
@@ -170,6 +175,7 @@ jobs:
           - login-ms
           - recovery-ms
           - register-ms
+          - reset-ms
     steps:
       - uses: actions/checkout@v4
         with:
@@ -191,7 +197,7 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Seleccionar ambiente y SSH key
+      - name: Select environment and SSH key
         if: steps.changes.outputs.changed == 'true'
         id: select-env
         run: |
@@ -216,10 +222,8 @@ jobs:
           key: ${{ steps.select-env.outputs.key }}
           port: 22
           script: |
-            # Eliminar el contenedor viejo si existe, ignora error si no existe
             docker rm -f ${{ matrix.service }} || true
 
-            # Setear envs comunes
             export DB_HOST='${{ secrets.DB_HOST }}'
             export DB_USER='${{ secrets.DB_USER }}'
             export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
@@ -234,7 +238,6 @@ jobs:
             export EMAIL_PASS='${{ secrets.EMAIL_PASS }}'
             export APP_URL='${{ secrets.APP_URL }}'
 
-            # Desplegar cada microservicio según necesita
             if [ "${{ matrix.service }}" = "analysis-avatar-ms" ]; then
               docker run -d --name analysis-avatar-ms \
                 -p 5029:3029 \
@@ -286,5 +289,15 @@ jobs:
                 -e S3_BUCKET_NAME=$S3_BUCKET_NAME \
                 -e AWS_REGION=$AWS_REGION \
                 alexismendozaa/register-ms:latest
-            fi
 
+            elif [ "${{ matrix.service }}" = "reset-ms" ]; then
+              docker run -d --name reset-ms \
+                -p 5003:3003 \
+                -e DB_HOST=$DB_HOST \
+                -e DB_USER=$DB_USER \
+                -e DB_PASSWORD=$DB_PASSWORD \
+                -e DB_NAME=$DB_NAME \
+                -e EMAIL_USER=$EMAIL_USER \
+                -e EMAIL_PASS=$EMAIL_PASS \
+                alexismendozaa/reset-ms:latest
+            fi
