@@ -1,0 +1,8 @@
+.env
+tests/
+.git
+.github/
+node_modules/
+Dockerfile
+Readme.md
+*.log
