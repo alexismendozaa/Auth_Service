@@ -11,14 +11,14 @@ COPY . .
 EXPOSE 3003
 
 CMD ["node", "app.js"]
-# Etapa 1: Construcción (instala dependencias y prepara app)
+
 FROM node:18 AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 
-# Etapa 2: Imagen de solo ejecución
+
 FROM node:18-slim
 WORKDIR /app
 COPY package*.json ./
