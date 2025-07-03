@@ -19,7 +19,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-
+app.get('/health', (req, res) => {
+  res.status(200).send('ok');
+});
 // Configuration Swagger
 const swaggerOptions = {
   swaggerDefinition: {

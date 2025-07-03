@@ -12,9 +12,7 @@ const app = express();
 // Middleware to parse JSON in the request body
 app.use(express.json());
 
-// Rutas de autenticación
-const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
+
 
 // CORS configuration
 app.use(cors({
@@ -22,6 +20,13 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.get('/health', (req, res) => {
+  res.status(200).send('ok');
+});
+
+// Rutas de autenticación
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
 
 // Multer configuration for file handling
 const storage = multer.memoryStorage();
