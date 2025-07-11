@@ -221,7 +221,7 @@ jobs:
                 -e SIGHTENGINE_API_USER="$SIGHTENGINE_API_USER" \
                 alexismendozaa/analysis-avatar-ms:latest
 
-            elif [ "${{ matrix.service }}" = "login-ms" ]]; then
+            elif [ "${{ matrix.service }}" = "login-ms" ]; then
               docker run -d --name login-ms \
                 -p 5001:3001 \
                 -e DB_HOST="$DB_HOST" \
@@ -250,7 +250,7 @@ jobs:
               docker run -d --name register-ms \
                 -p 5025:3025 \
                 -e DB_HOST="$DB_HOST" \
-                -e DB_USER="$DB_USER" \
+                -e	DB_USER="$DB_USER" \
                 -e DB_PASSWORD="$DB_PASSWORD" \
                 -e DB_NAME="$DB_NAME" \
                 -e JWT_SECRET="$JWT_SECRET" \
@@ -259,30 +259,18 @@ jobs:
                 -e AWS_REGION="$AWS_REGION" \
                 alexismendozaa/register-ms:latest
 
-            elif [ "${{ matrix.service }}" = "reset-ms" ]]; then
+            elif [ "${{ matrix.service }}" = "reset-ms" ]; then
               docker run -d --name reset-ms \
                 -p 5003:3003 \
                 -e DB_HOST="$DB_HOST" \
-                -e DB_USER="$DB_USER" \
+                -e	DB_USER="$DB_USER" \
                 -e DB_PASSWORD="$DB_PASSWORD" \
                 -e DB_NAME="$DB_NAME" \
                 -e EMAIL_USER="$EMAIL_USER" \
                 -e EMAIL_PASS="$EMAIL_PASS" \
                 alexismendozaa/reset-ms:latest
-            fi
 
-      - name: Copy Nginx config to QA
-        if: steps.changes.outputs.changed == 'true'
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_QA }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY_QA }}
-          port: 22
-          source: "nginx/qa1_alexis_mendoza.conf"
-          target: "/etc/nginx/sites-available/qa1_alexis_mendoza.conf"
-
-      - name: Enable and reload Nginx on QA
+      - name: Upload Nginx config & reload (QA)
         if: steps.changes.outputs.changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -291,6 +279,9 @@ jobs:
           key: ${{ secrets.SSH_KEY_QA }}
           port: 22
           script: |
+            sudo tee /etc/nginx/sites-available/qa1_alexis_mendoza.conf > /dev/null << 'EOF'
+            $(sed 's/^/    /' nginx/qa1_alexis_mendoza.conf)
+            EOF
             sudo ln -sf /etc/nginx/sites-available/qa1_alexis_mendoza.conf /etc/nginx/sites-enabled/qa1_alexis_mendoza.conf
             sudo nginx -t && sudo systemctl reload nginx
 
@@ -315,7 +306,7 @@ jobs:
         run: |
           git fetch --prune --unshallow || git fetch --all
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git fetch origin ${{ github.base_ref }}
+            git.fetch origin ${{ github.base_ref }}
             CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
           else
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
@@ -381,7 +372,7 @@ jobs:
 
             elif [ "${{ matrix.service }}" = "recovery-ms" ]]; then
               docker run -d --name recovery-ms \
-                -p 5002:3002 \
+                -p 5002:3022 \
                 -e DB_HOST="$DB_HOST" \
                 -e	DB_USER="$DB_USER" \
                 -e DB_PASSWORD="$DB_PASSWORD" \
@@ -406,7 +397,7 @@ jobs:
 
             elif [ "${{ matrix.service }}" = "reset-ms" ]]; then
               docker run -d --name reset-ms \
-                -p 5003:3003 \
+                -p 5003:3023 \
                 -e DB_HOST="$DB_HOST" \
                 -e	DB_USER="$DB_USER" \
                 -e DB_PASSWORD="$DB_PASSWORD" \
@@ -415,18 +406,7 @@ jobs:
                 -e EMAIL_PASS="$EMAIL_PASS" \
                 alexismendozaa/reset-ms:latest
 
-      - name: Copy Nginx config to PROD
-        if: steps.changes.outputs.changed == 'true'
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_PROD }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY_PROD }}
-          port: 22
-          source: "nginx/qa1_alexis_mendoza.conf"
-          target: "/etc/nginx/sites-available/qa1_alexis_mendoza.conf"
-
-      - name: Enable and reload Nginx on PROD
+      - name: Upload Nginx config & reload (PROD)
         if: steps.changes.outputs.changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -435,5 +415,8 @@ jobs:
           key: ${{ secrets.SSH_KEY_PROD }}
           port: 22
           script: |
+            sudo tee /etc/nginx/sites-available/qa1_alexis_mendoza.conf > /dev/null << 'EOF'
+            $(sed 's/^/    /' nginx/qa1_alexis_mendoza.conf)
+            EOF
             sudo ln -sf /etc/nginx/sites-available/qa1_alexis_mendoza.conf /etc/nginx/sites-enabled/qa1_alexis_mendoza.conf
             sudo nginx -t && sudo systemctl reload nginx
