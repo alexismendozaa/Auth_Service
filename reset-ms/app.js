@@ -35,7 +35,6 @@ const swaggerOptions = {
   apis: ['./routes/resetRoutes.js'],
 };
 
-
 // Generate Swagger documentation
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
