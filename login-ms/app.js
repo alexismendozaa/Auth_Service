@@ -44,7 +44,6 @@ const swaggerOptions = {
   apis: ['./routes/authRoutes.js'],
 };
 
-
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs-login', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
