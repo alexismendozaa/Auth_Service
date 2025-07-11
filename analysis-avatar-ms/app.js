@@ -61,3 +61,4 @@ app.use('/api-docs-analysis-avatar', swaggerUi.serve, swaggerUi.setup(swaggerDoc
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://0.0.0.0:${port}`);
 });
+
