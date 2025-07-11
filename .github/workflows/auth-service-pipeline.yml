@@ -47,11 +47,7 @@ jobs:
           else
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
           fi
-          if [[ -n "$CHANGED" ]]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          echo "changed=$([[ -n \"$CHANGED\" ]] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Run static check
         if: steps.changes.outputs.changed == 'true'
@@ -82,16 +78,11 @@ jobs:
           else
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
           fi
-          if [[ -n "$CHANGED" ]]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          echo "changed=$([[ -n \"$CHANGED\" ]] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Build Docker image
         if: steps.changes.outputs.changed == 'true'
-        run: |
-          docker build -t alexismendozaa/${{ matrix.service }}:latest ./${{ matrix.service }}
+        run: docker build -t alexismendozaa/${{ matrix.service }}:latest ./${{ matrix.service }}
 
       - name: Save Docker image artifact
         if: steps.changes.outputs.changed == 'true'
@@ -123,16 +114,12 @@ jobs:
         run: |
           git fetch --prune --unshallow || git fetch --all
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git.fetch origin ${{ github.base_ref }}
+            git fetch origin ${{ github.base_ref }}
             CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
           else
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
           fi
-          if [[ -n "$CHANGED" ]]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          echo "changed=$([[ -n \"$CHANGED\" ]] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - uses: actions/download-artifact@v4
         if: steps.changes.outputs.changed == 'true'
@@ -175,11 +162,7 @@ jobs:
         run: |
           git fetch --prune --unshallow || git fetch --all
           CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
-          if [[ -n "$CHANGED" ]]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          echo "changed=$([[ -n \"$CHANGED\" ]] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Deploy updated microservice to EC2 QA via SSH
         if: steps.changes.outputs.changed == 'true'
@@ -279,8 +262,8 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY_QA }}
           port: 22
-          source: "nginx/${{ matrix.service }}.conf"
-          target: "/etc/nginx/sites-available/${{ matrix.service }}.conf"
+          source: "nginx/qa1_alexis_mendoza.conf"
+          target: "/etc/nginx/sites-available/qa1_alexis_mendoza.conf"
 
       - name: Enable and reload Nginx on QA
         if: steps.changes.outputs.changed == 'true'
@@ -291,10 +274,9 @@ jobs:
           key: ${{ secrets.SSH_KEY_QA }}
           port: 22
           script: |
-            sudo ln -sf /etc/nginx/sites-available/${{ matrix.service }}.conf \
-                         /etc/nginx/sites-enabled/${{ matrix.service }}.conf
-            sudo nginx -t
-            sudo systemctl reload nginx
+            sudo ln -sf /etc/nginx/sites-available/qa1_alexis_mendoza.conf \
+                         /etc/nginx/sites-enabled/qa1_alexis_mendoza.conf
+            sudo nginx -t && sudo systemctl reload nginx
 
   ### 4B. DEPLOY PROD ###
   deploy-prod:
@@ -322,11 +304,7 @@ jobs:
           else
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
           fi
-          if [[ -n "$CHANGED" ]]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+          echo "changed=$([[ -n \"$CHANGED\" ]] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Deploy updated microservice to EC2 PROD via SSH
         if: steps.changes.outputs.changed == 'true'
@@ -406,7 +384,7 @@ jobs:
                 -e AWS_REGION="$AWS_REGION" \
                 alexismendozaa/register-ms:latest
 
-            elif [ "${{ matrix.service }}" = "reset-ms" ]; then
+            elif [ "${{ matrix.service }}" = "reset-ms" ]]; then
               docker run -d --name reset-ms \
                 -p 5003:3003 \
                 -e DB_HOST="$DB_HOST" \
@@ -426,8 +404,8 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY_PROD }}
           port: 22
-          source: "nginx/${{ matrix.service }}.conf"
-          target: "/etc/nginx/sites-available/${{ matrix.service }}.conf"
+          source: "nginx/qa1_alexis_mendoza.conf"
+          target: "/etc/nginx/sites-available/qa1_alexis_mendoza.conf"
 
       - name: Enable and reload Nginx on PROD
         if: steps.changes.outputs.changed == 'true'
@@ -438,7 +416,6 @@ jobs:
           key: ${{ secrets.SSH_KEY_PROD }}
           port: 22
           script: |
-            sudo ln -sf /etc/nginx/sites-available/${{ matrix.service }}.conf \
-                         /etc/nginx/sites-enabled/${{ matrix.service }}.conf
-            sudo nginx -t
-            sudo systemctl reload nginx
+            sudo ln -sf /etc/nginx/sites-available/qa1_alexis_mendoza.conf \
+                         /etc/nginx/sites-enabled/qa1_alexis_mendoza.conf
+            sudo nginx -t && sudo systemctl reload nginx
