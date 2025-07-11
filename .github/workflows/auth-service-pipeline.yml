@@ -123,7 +123,7 @@ jobs:
         run: |
           git fetch --prune --unshallow || git fetch --all
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git fetch origin ${{ github.base_ref }}
+            git.fetch origin ${{ github.base_ref }}
             CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^${{ matrix.service }}/" || true)
           else
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep "^${{ matrix.service }}/" || true)
@@ -271,6 +271,31 @@ jobs:
                 alexismendozaa/reset-ms:latest
             fi
 
+      - name: Copy Nginx config to QA
+        if: steps.changes.outputs.changed == 'true'
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_QA }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY_QA }}
+          port: 22
+          source: "nginx/${{ matrix.service }}.conf"
+          target: "/etc/nginx/sites-available/${{ matrix.service }}.conf"
+
+      - name: Enable and reload Nginx on QA
+        if: steps.changes.outputs.changed == 'true'
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_QA }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY_QA }}
+          port: 22
+          script: |
+            sudo ln -sf /etc/nginx/sites-available/${{ matrix.service }}.conf \
+                         /etc/nginx/sites-enabled/${{ matrix.service }}.conf
+            sudo nginx -t
+            sudo systemctl reload nginx
+
   ### 4B. DEPLOY PROD ###
   deploy-prod:
     runs-on: ubuntu-latest
@@ -392,3 +417,28 @@ jobs:
                 -e EMAIL_PASS="$EMAIL_PASS" \
                 alexismendozaa/reset-ms:latest
             fi
+
+      - name: Copy Nginx config to PROD
+        if: steps.changes.outputs.changed == 'true'
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_PROD }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY_PROD }}
+          port: 22
+          source: "nginx/${{ matrix.service }}.conf"
+          target: "/etc/nginx/sites-available/${{ matrix.service }}.conf"
+
+      - name: Enable and reload Nginx on PROD
+        if: steps.changes.outputs.changed == 'true'
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_PROD }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY_PROD }}
+          port: 22
+          script: |
+            sudo ln -sf /etc/nginx/sites-available/${{ matrix.service }}.conf \
+                         /etc/nginx/sites-enabled/${{ matrix.service }}.conf
+            sudo nginx -t
+            sudo systemctl reload nginx

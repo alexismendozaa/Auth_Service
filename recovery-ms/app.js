@@ -39,7 +39,6 @@ const swaggerOptions = {
 // Generate Swagger documentation
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
-
 app.use('/api', passwordRoutes);
 
 // Swagger UI

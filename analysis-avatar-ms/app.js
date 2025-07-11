@@ -10,7 +10,6 @@ const swaggerUi = require('swagger-ui-express');
 const app = express();
 const port = 3029; 
 
-
 app.use(cors({
   origin: '*', 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
