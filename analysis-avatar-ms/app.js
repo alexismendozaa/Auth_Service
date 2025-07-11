@@ -23,6 +23,7 @@ app.get('/health', (req, res) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
 app.use( userRoutes); 
 
 // Swagger
